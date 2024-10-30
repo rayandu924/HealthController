@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Jeu de Douane 3D avec Three.js</title>
+    <style>
+        /* Styles de base */
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1a1a1a;
+            color: #f0f0f0;
+        }
+
+        /* Interface Utilisateur */
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Informations du jeu */
+        #info {
+            position: relative;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            min-width: 200px;
+        }
+
+        #info p {
+            margin: 5px 0;
+            font-size: 16px;
+        }
+
+        /* Panneau des objets interdits */
+        #forbiddenPanel {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 8px;
+            max-width: 250px;
+            overflow-y: auto;
+            max-height: 400px;
+        }
+
+        #forbiddenPanel h3 {
+            margin-top: 0;
+            font-size: 18px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .forbidden-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .forbidden-color {
+            width: 24px;
+            height: 24px;
+            margin-right: 12px;
+            border: 1px solid #fff;
+            border-radius: 4px;
+        }
+
+        .forbidden-item span {
+            font-size: 16px;
+        }
+
+        /* Écran de blocage au démarrage */
+        #blocker {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+            z-index: 2;
+        }
+
+        #blocker:hover {
+            background-color: rgba(0,0,0,0.9);
+        }
+
+        /* Transition de jour */
+        #dayTransition {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: black;
+            color: white;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            z-index: 3;
+        }
+
+        /* Animation de gain/perte d'argent */
+        .money-change {
+            position: absolute;
+            font-size: 20px;
+            font-weight: bold;
+            z-index: 4;
+            pointer-events: none;
+            text-shadow: 1px 1px 4px rgba(0,0,0,0.5);
+        }
+    </style>
+</head>
+<body>
+    <!-- Interface Utilisateur -->
+    <div id="ui">
+        <div id="info">
+            <p>💰 Argent: <span id="money">0</span>€</p>
+            <p>📅 Jour: <span id="day">1</span></p>
+            <p>📦 Boîtes contrôlées: <span id="boxesHandled">0</span>/<span id="boxesTotal">10</span></p>
+        </div>
+        <!-- Panneau des Objets Interdits -->
+        <div id="forbiddenPanel">
+            <h3>Objets Interdits</h3>
+            <div id="forbiddenList">
+                <!-- Liste des objets interdits sera générée ici -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Écran de démarrage -->
+    <div id="blocker">Cliquez pour commencer</div>
+
+    <!-- Transition de jour -->
+    <div id="dayTransition"></div>
+
+    <!-- Bibliothèques externes -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/three@0.128.0/examples/js/controls/PointerLockControls.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
+
+    <script>
+        // Configuration du jeu et du mapping de la scène
+        const CONFIG = {
+            scene: { backgroundColor: 0x555555 },
+            camera: {
+                fov: 75,
+                aspect: window.innerWidth / window.innerHeight,
+                near: 0.1,
+                far: 1000,
+                position: { x: 0, y: 2.5, z: 5 } // Position initiale ajustée pour mieux voir le tapis roulant
+            },
+            renderer: { antialias: true },
+            lighting: {
+                ambient: { color: 0x404040 }
+            },
+            conveyorBelt: {
+                size: { width: 10, height: 1, depth: 2 },
+                color: 0x808080,
+                position: { x: 0, y: 0.25, z: 0 },
+                baseSpeed: 0.5 // Vitesse de base du tapis roulant
+            },
+            boxGenerator: {
+                size: { width: 0.1, height: 2, depth: 2 },
+                color: 0xff0000,
+                position: { x: -6.05, y: 1.1, z: 0 },
+                baseSpawnInterval: 2500 // Intervalle de base pour la génération des boîtes (5 secondes)
+            },
+            boxDestroyer: {
+                size: { width: 0.1, height: 2, depth: 2 },
+                color: 0x000000,
+                position: { x: 5.05, y: 1, z: 0 }
+            },
+            player: { height: 2.5 },
+            box: {
+                dimensions: { width: 1, height: 0.5, depth: 1 },
+                wallThickness: 0.05,
+                velocity: { x: 0.05, y: 0, z: 0 }
+            },
+            boxMaterials: {
+                lidColor: 0x421c01,
+                wallColor: 0xa65b02,
+                bottomColor: 0xe3881b
+            },
+            game: { 
+                packagesPerDay: 10, 
+                moneyPerPackage: 10,
+                moneyLostPerBadBox: 20,
+                forbiddenBoxProbability: 0.2 // Probabilité qu'une boîte soit interdite
+            },
+            speedFactor: 2.0, // Facteur de vitesse initial
+            sceneMapping: {
+                objects: [
+                    // Sol
+                    {
+                        type: 'Box',
+                        options: {
+                            dimensions: { width: 10, height: 0.1, depth: 5 },
+                            material: new THREE.MeshPhongMaterial({ color: 0x228B22 }),
+                            position: { x: 0, y: 0, z: 3.5 },
+                            rotation: { x: 0, y: 0, z: 0 }
+                        }
+                    },
+                    // Tapis roulant
+                    {
+                        type: 'Box',
+                        options: {
+                            dimensions: { width: 10, height: 1.5, depth: 2 },
+                            material: new THREE.MeshPhongMaterial({ color: 0x808080 }),
+                            position: { x: 0, y: 0.25, z: 0 }
+                        }
+                    },
+                    // Générateur de boîtes
+                    {
+                        type: 'Box',
+                        options: {
+                            dimensions: { width: 0.1, height: 2, depth: 2 },
+                            material: new THREE.MeshPhongMaterial({ color: 0x000000 }),
+                            position: { x: -4.95, y: 1, z: -0.01 }
+                        }
+                    },
+                    // Destructeur de boîtes
+                    {
+                        type: 'Box',
+                        options: {
+                            dimensions: { width: 0.1, height: 2, depth: 2 },
+                            material: new THREE.MeshPhongMaterial({ color: 0x000000 }),
+                            position: { x: 4.95, y: 1, z: -0.01 }
+                        }
+                    },
+                    // Murs et plafond
+                    {
+                        type: 'Box',
+                        options: {
+                            dimensions: { width: 10, height: 3, depth: 0.1 },
+                            material: new THREE.MeshPhongMaterial({ color: 0x5e5529 }),
+                            position: { x: 0, y: 1.5, z: -1 }
+                        }
+                    },
+                    {
+                        type: 'Box',
+                        options: {
+                            dimensions: { width: 10, height: 3, depth: 0.1 },
+                            material: new THREE.MeshPhongMaterial({ color: 0x5e5529 }),
+                            position: { x: 0, y: 1.5, z: 6 }
+                        }
+                    },
+                    {
+                        type: 'Box',
+                        options: {
+                            dimensions: { width: 7, height: 3, depth: 0.1 },
+                            material: new THREE.MeshPhongMaterial({ color: 0x5e5529 }),
+                            position: { x: 5, y: 1.5, z: 2.55 },
+                            rotation: { x: 0, y: Math.PI/2, z: 0 }
+                        }
+                    },
+                    {
+                        type: 'Box',
+                        options: {
+                            dimensions: { width: 7, height: 3, depth: 0.1 },
+                            material: new THREE.MeshPhongMaterial({ color: 0x5e5529 }),
+                            position: { x: -5, y: 1.5, z: 2.55 },
+                            rotation: { x: 0, y: Math.PI/2, z: 0 }
+                        }
+                    },
+                    // Plafond
+                    {
+                        type: 'Box',
+                        options: {
+                            dimensions: { width: 10, height: 0.1, depth: 7 },
+                            material: new THREE.MeshPhongMaterial({ color: 0x228B22 }),
+                            position: { x: 0, y: 3, z: 2.5 },
+                            rotation: { x: 0, y: 0, z: 0 }
+                        }
+                    },
+                ]
+            },
+            forbiddenObjects: [], // À définir dynamiquement
+            objectPool: [] // Liste des objets prédéfinis
+        };
+
+        /**
+         * Fonction utilitaire pour créer des objets
+         * @param {string} type - Type de l'objet (Box, Sphere, etc.)
+         * @param {object} options - Options de configuration de l'objet
+         * @returns {THREE.Mesh} - L'objet créé
+         */
+        function createObject(type, options = {}) {
+            let geometry;
+            switch (type) {
+                case 'Box':
+                    geometry = new THREE.BoxGeometry(
+                        options.dimensions?.width || 0.5,
+                        options.dimensions?.height || 0.5,
+                        options.dimensions?.depth || 0.5
+                    );
+                    break;
+                case 'Sphere':
+                    geometry = new THREE.SphereGeometry(
+                        options.radius || 0.25,
+                        options.widthSegments || 16,
+                        options.heightSegments || 16
+                    );
+                    break;
+                case 'Cylinder':
+                    geometry = new THREE.CylinderGeometry(
+                        options.radiusTop || 0.25,
+                        options.radiusBottom || 0.25,
+                        options.height || 0.5,
+                        options.radialSegments || 16
+                    );
+                    break;
+                case 'Cone':
+                    geometry = new THREE.ConeGeometry(
+                        options.radius || 0.25,
+                        options.height || 0.5,
+                        options.radialSegments || 16
+                    );
+                    break;
+                case 'Torus':
+                    geometry = new THREE.TorusGeometry(
+                        options.radius || 0.25,
+                        options.tube || 0.1,
+                        options.radialSegments || 16,
+                        options.tubularSegments || 32
+                    );
+                    break;
+                default:
+                    console.warn(`Type de géométrie inconnu: ${type}`);
+                    geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+            }
+
+            const material = options.material || new THREE.MeshPhongMaterial({ color: options.color || 0xffffff });
+            const mesh = new THREE.Mesh(geometry, material);
+
+            if (options.position) {
+                mesh.position.set(
+                    options.position.x || 0,
+                    options.position.y || 0,
+                    options.position.z || 0
+                );
+            }
+
+            if (options.rotation) {
+                mesh.rotation.set(
+                    options.rotation.x || 0,
+                    options.rotation.y || 0,
+                    options.rotation.z || 0
+                );
+            }
+
+            if (options.scale) {
+                mesh.scale.set(
+                    options.scale.x || 1,
+                    options.scale.y || 1,
+                    options.scale.z || 1
+                );
+            }
+
+            if (options.name) {
+                mesh.name = options.name;
+            }
+
+            if (options.userData) {
+                mesh.userData = options.userData;
+            }
+
+            return mesh;
+        }
+
+        /**
+         * Fonction utilitaire pour obtenir un élément aléatoire d'un tableau
+         * @param {Array} array - Tableau d'éléments
+         * @returns {*} - Élément aléatoire du tableau
+         */
+        function getRandomElement(array) {
+            return array[THREE.MathUtils.randInt(0, array.length - 1)];
+        }
+
+        /**
+         * Classe pour mapper la scène avec des objets de décoration.
+         */
+        class SceneMapper {
+            constructor(scene, mapperConfig) {
+                this.scene = scene;
+                this.mapperConfig = mapperConfig;
+                this.init();
+            }
+
+            init() {
+                this.mapperConfig.objects.forEach(objConfig => {
+                    const obj = createObject(objConfig.type, objConfig.options);
+                    this.scene.add(obj);
+                });
+            }
+        }
+
+        /**
+         * Classe représentant une boîte dans le jeu.
+         */
+        class Box {
+            constructor(position, dimensions, wallThickness, scene, conveyorSpeed, forbiddenObjects, isForbiddenBox) {
+                this.group = new THREE.Group();
+                this.dimensions = dimensions;
+                this.wallThickness = wallThickness;
+                this.velocity = new THREE.Vector3(conveyorSpeed, 0, 0);
+                this.forbiddenObjects = forbiddenObjects;
+                this.isForbiddenBox = isForbiddenBox;
+                this.isForbidden = false; // Sera défini lors de l'ajout des objets
+
+                // Création des murs
+                this.createWalls();
+
+                // Création du couvercle
+                this.createLid();
+
+                // Ajout d'objets
+                this.addObjects();
+
+                // Positionnement initial
+                this.group.position.set(position.x, position.y + 0.25, position.z);
+                this.group.userData.velocity = this.velocity;
+
+                // Ajout à la scène
+                scene.add(this.group);
+            }
+
+            createWalls() {
+                const { width, height, depth } = this.dimensions;
+                const t = this.wallThickness;
+                const wallMaterial = new THREE.MeshPhongMaterial({ color: CONFIG.boxMaterials.wallColor });
+                const halfWidth = width / 2;
+                const halfDepth = depth / 2;
+                const halfHeight = height / 2;
+
+                const walls = [
+                    // Front
+                    {
+                        type: 'Box',
+                        options: {
+                            dimensions: { width: width + t * 2, height, depth: t },
+                            material: wallMaterial,
+                            position: { x: 0, y: 0, z: halfDepth + t / 2 }
+                        }
+                    },
+                    // Back
+                    {
+                        type: 'Box',
+                        options: {
+                            dimensions: { width: width + t * 2, height, depth: t },
+                            material: wallMaterial,
+                            position: { x: 0, y: 0, z: -halfDepth - t / 2 }
+                        }
+                    },
+                    // Left
+                    {
+                        type: 'Box',
+                        options: {
+                            dimensions: { width: t, height, depth: depth + t * 2 },
+                            material: wallMaterial,
+                            position: { x: -halfWidth - t / 2, y: 0, z: 0 }
+                        }
+                    },
+                    // Right
+                    {
+                        type: 'Box',
+                        options: {
+                            dimensions: { width: t, height, depth: depth + t * 2 },
+                            material: wallMaterial,
+                            position: { x: halfWidth + t / 2, y: 0, z: 0 }
+                        }
+                    },
+                    // Bottom
+                    {
+                        type: 'Box',
+                        options: {
+                            dimensions: { width: width + t * 2, height: t, depth: depth + t * 2 },
+                            material: new THREE.MeshPhongMaterial({ color: CONFIG.boxMaterials.bottomColor }),
+                            position: { x: 0, y: -halfHeight - t / 2, z: 0 }
+                        }
+                    }
+                ];
+
+                walls.forEach(wallConfig => {
+                    const wall = createObject(wallConfig.type, wallConfig.options);
+                    this.group.add(wall);
+                });
+            }
+
+            createLid() {
+                const { width, height, depth } = this.dimensions;
+                const t = this.wallThickness;
+                const lid = createObject('Box', {
+                    dimensions: { width: width + t * 2, height: t, depth: depth + t * 2 },
+                    material: new THREE.MeshPhongMaterial({ color: CONFIG.boxMaterials.lidColor }),
+                    position: { x: 0, y: height / 2 + t / 2, z: 0 },
+                    name: 'lid'
+                });
+                this.group.add(lid);
+            }
+
+            isObjectForbidden(poolObject) {
+                return this.forbiddenObjects.some(obj => obj.type === poolObject.type && obj.color === poolObject.color);
+            }
+
+            getNonForbiddenObjects() {
+                return CONFIG.objectPool.filter(obj => !this.isObjectForbidden(obj));
+            }
+
+            addObjects() {
+                const { width, height, depth } = this.dimensions;
+                const margin = 0.05;
+                const numObjects = THREE.MathUtils.randInt(1, 3);
+                let hasForbiddenObject = false;
+                const nonForbiddenObjects = this.getNonForbiddenObjects();
+
+                for (let i = 0; i < numObjects; i++) {
+                    let poolObject;
+
+                    if (this.isForbiddenBox && !hasForbiddenObject && i === numObjects - 1) {
+                        // S'assurer qu'au moins un objet interdit est ajouté
+                        poolObject = getRandomElement(this.forbiddenObjects);
+                        hasForbiddenObject = true;
+                    } else {
+                        if (this.isForbiddenBox) {
+                            // Décider aléatoirement d'ajouter un objet interdit
+                            if (Math.random() < 0.5) {
+                                poolObject = getRandomElement(this.forbiddenObjects);
+                                hasForbiddenObject = true;
+                            } else {
+                                poolObject = getRandomElement(nonForbiddenObjects);
+                            }
+                        } else {
+                            // Boîtes normales
+                            poolObject = getRandomElement(nonForbiddenObjects);
+                        }
+                    }
+
+                    const object = createObject(poolObject.type, {
+                        color: poolObject.color,
+                        position: {
+                            x: THREE.MathUtils.randFloatSpread(width / 2 - margin),
+                            y: THREE.MathUtils.randFloatSpread(height / 2 - margin),
+                            z: THREE.MathUtils.randFloatSpread(depth / 2 - margin)
+                        }
+                    });
+
+                    // Marquer l'objet comme interdit si nécessaire
+                    object.userData.isForbidden = this.isObjectForbidden(poolObject);
+
+                    this.group.add(object);
+                }
+
+                this.isForbidden = hasForbiddenObject;
+            }
+
+            update(delta) {
+                this.group.position.add(this.velocity.clone().multiplyScalar(delta));
+            }
+
+            isOutOfBounds(destroyPositionX) {
+                return this.group.position.x > destroyPositionX;
+            }
+
+            removeFromScene(scene) {
+                scene.remove(this.group);
+            }
+        }
+
+        /**
+         * Classe principale du jeu.
+         */
+        class Game {
+            constructor(config) {
+                this.config = config;
+                this.scene = null;
+                this.camera = null;
+                this.renderer = null;
+                this.controls = null;
+                this.boxes = [];
+                this.money = 0;
+                this.day = 1;
+                this.packagesHandled = 0;
+                this.packagesGenerated = 0; // Compteur des boîtes générées pour le jour en cours
+                this.boxGenerator = { ...config.boxGenerator, elapsedTime: 0 };
+                this.lastFrameTime = null;
+                this.move = { forward: false, backward: false, left: false, right: false };
+                this.velocityPlayer = new THREE.Vector3();
+                this.direction = new THREE.Vector3();
+                this.forbiddenObjectsList = []; // Liste des objets interdits
+
+                this.init();
+            }
+
+            init() {
+                this.setupScene();
+                this.setupCamera();
+                this.setupRenderer();
+                this.setupLighting();
+                this.setupControls();
+                this.setupEventListeners();
+                this.setupObjectPool();
+                this.setupForbiddenObjects();
+
+                // Initialiser le SceneMapper avec la configuration de décoration
+                this.sceneMapper = new SceneMapper(this.scene, this.config.sceneMapping);
+
+                // Mettre à jour le nombre de boîtes pour le premier jour
+                this.updatePackagesPerDay();
+
+                this.updateUI();
+                this.showDayTransition();
+                requestAnimationFrame(this.animate.bind(this));
+            }
+
+            setupScene() {
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(this.config.scene.backgroundColor);
+            }
+
+            setupCamera() {
+                const { fov, aspect, near, far, position } = this.config.camera;
+                this.camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
+                this.camera.position.set(position.x, position.y, position.z);
+            }
+
+            setupRenderer() {
+                const { antialias } = this.config.renderer;
+                this.renderer = new THREE.WebGLRenderer({ antialias });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                document.body.appendChild(this.renderer.domElement);
+            }
+
+            setupLighting() {
+                const { ambient } = this.config.lighting;
+
+                // Lumière ambiante
+                const ambientLight = new THREE.AmbientLight(ambient.color);
+                this.scene.add(ambientLight);
+
+                // Lumière directionnelle pour mieux éclairer les objets
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+                directionalLight.position.set(0, 10, 5);
+                this.scene.add(directionalLight);
+            }
+
+            setupControls() {
+                this.controls = new THREE.PointerLockControls(this.camera, document.body);
+                const blocker = document.getElementById('blocker');
+
+                blocker.addEventListener('click', () => this.controls.lock(), false);
+
+                this.controls.addEventListener('lock', () => {
+                    blocker.style.display = 'none';
+                });
+
+                this.controls.addEventListener('unlock', () => {
+                    blocker.style.display = 'flex';
+                });
+
+                this.scene.add(this.controls.getObject());
+                this.controls.getObject().position.set(
+                    this.config.camera.position.x,
+                    this.config.player.height,
+                    this.config.camera.position.z
+                );
+            }
+
+            setupEventListeners() {
+                window.addEventListener('resize', this.onWindowResize.bind(this), false);
+                document.addEventListener('keydown', this.onKeyDown.bind(this), false);
+                document.addEventListener('keyup', this.onKeyUp.bind(this), false);
+                document.addEventListener('mousedown', this.onMouseDown.bind(this), false);
+            }
+
+            setupObjectPool() {
+                // Pré-définir une liste d'objets avec des formes et des couleurs spécifiques
+                CONFIG.objectPool = [
+                    { type: 'Box', color: 0xff0000, name: 'Boîte Rouge' },
+                    { type: 'Sphere', color: 0x00ff00, name: 'Sphère Verte' },
+                    { type: 'Cylinder', color: 0x0000ff, name: 'Cylindre Bleu' },
+                    { type: 'Cone', color: 0xffff00, name: 'Cône Jaune' },
+                    { type: 'Torus', color: 0xff00ff, name: 'Tore Magenta' },
+                    { type: 'Box', color: 0xffa500, name: 'Boîte Orange' },
+                    { type: 'Sphere', color: 0x800080, name: 'Sphère Violette' },
+                    // Ajoutez plus d'objets spécifiques si nécessaire
+                ];
+            }
+
+            setupForbiddenObjects() {
+                // Initialiser la liste des objets interdits
+                this.forbiddenObjectsList = [];
+                this.updateForbiddenObjects();
+                this.updateForbiddenPanel();
+            }
+
+            updateForbiddenObjects() {
+                // Sélectionner les objets interdits
+                const totalObjects = CONFIG.objectPool.length;
+                const numForbidden = Math.min(this.day, totalObjects);
+                this.config.forbiddenObjects = getRandomElements(CONFIG.objectPool, numForbidden);
+            }
+
+            updateForbiddenPanel() {
+                const forbiddenList = document.getElementById('forbiddenList');
+                forbiddenList.innerHTML = ''; // Réinitialiser la liste
+
+                this.config.forbiddenObjects.forEach(obj => {
+                    const item = document.createElement('div');
+                    item.classList.add('forbidden-item');
+
+                    const colorBox = document.createElement('div');
+                    colorBox.classList.add('forbidden-color');
+                    colorBox.style.backgroundColor = `#${obj.color.toString(16).padStart(6, '0')}`;
+
+                    const label = document.createElement('span');
+                    label.innerText = obj.name || obj.type;
+
+                    item.appendChild(colorBox);
+                    item.appendChild(label);
+                    forbiddenList.appendChild(item);
+                });
+            }
+
+            onWindowResize() {
+                this.camera.aspect = window.innerWidth / window.innerHeight;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+
+            onKeyDown(event) {
+                switch (event.code) {
+                    case 'KeyW':
+                    case 'ArrowUp':
+                        this.move.forward = true;
+                        break;
+                    case 'KeyS':
+                    case 'ArrowDown':
+                        this.move.backward = true;
+                        break;
+                    case 'KeyA':
+                    case 'ArrowLeft':
+                        this.move.left = true;
+                        break;
+                    case 'KeyD':
+                    case 'ArrowRight':
+                        this.move.right = true;
+                        break;
+                    case 'KeyE':
+                        this.tryDestroyBox();
+                        break;
+                }
+            }
+
+            onKeyUp(event) {
+                switch (event.code) {
+                    case 'KeyW':
+                    case 'ArrowUp':
+                        this.move.forward = false;
+                        break;
+                    case 'KeyS':
+                    case 'ArrowDown':
+                        this.move.backward = false;
+                        break;
+                    case 'KeyA':
+                    case 'ArrowLeft':
+                        this.move.left = false;
+                        break;
+                    case 'KeyD':
+                    case 'ArrowRight':
+                        this.move.right = false;
+                        break;
+                }
+            }
+
+            onMouseDown(event) {
+                if (!this.controls.isLocked) return;
+
+                const raycaster = new THREE.Raycaster();
+                const mouse = new THREE.Vector2();
+
+                // Pointeur au centre de l'écran
+                mouse.x = 0;
+                mouse.y = 0;
+
+                raycaster.setFromCamera(mouse, this.camera);
+
+                const intersects = raycaster.intersectObjects(
+                    this.boxes.map(box => box.group),
+                    true
+                );
+
+                if (intersects.length > 0) {
+                    const intersectedBoxGroup = intersects[0].object.parent;
+                    const intersectedBox = this.boxes.find(box => box.group === intersectedBoxGroup);
+
+                    if (intersectedBox) {
+                        const lid = intersectedBox.group.getObjectByName('lid');
+                        if (lid) {
+                            // Animation d'ouverture du couvercle
+                            new TWEEN.Tween(lid.position)
+                                .to({ y: lid.position.y + 1 }, 500)
+                                .easing(TWEEN.Easing.Quadratic.Out)
+                                .onComplete(() => {
+                                    intersectedBox.group.remove(lid);
+                                    // Vous pouvez gérer l'ouverture de la boîte ici si nécessaire
+                                })
+                                .start();
+                        }
+                    }
+                }
+            }
+
+            tryDestroyBox() {
+                if (!this.controls.isLocked) return;
+
+                const raycaster = new THREE.Raycaster();
+                const mouse = new THREE.Vector2();
+
+                // Pointeur au centre de l'écran
+                mouse.x = 0;
+                mouse.y = 0;
+
+                raycaster.setFromCamera(mouse, this.camera);
+
+                const intersects = raycaster.intersectObjects(
+                    this.boxes.map(box => box.group),
+                    true
+                );
+
+                if (intersects.length > 0) {
+                    const intersectedBoxGroup = intersects[0].object.parent;
+                    const intersectedBox = this.boxes.find(box => box.group === intersectedBoxGroup);
+
+                    if (intersectedBox) {
+                        this.animateBoxDestruction(intersectedBox);
+
+                        let moneyChange = 0;
+                        if (intersectedBox.isForbidden) {
+                            moneyChange = this.config.game.moneyPerPackage;
+                            this.money += moneyChange;
+                        } else {
+                            moneyChange = -this.config.game.moneyLostPerBadBox;
+                            this.money += moneyChange;
+                        }
+
+                        this.packagesHandled++;
+                        this.updateUI();
+                        this.showMoneyChange(moneyChange);
+
+                        // Supprimer la boîte du tableau
+                        const index = this.boxes.indexOf(intersectedBox);
+                        if (index > -1) {
+                            this.boxes.splice(index, 1);
+                        }
+
+                        if (this.packagesHandled >= this.config.game.packagesPerDay && this.boxes.length === 0) {
+                            this.nextDay();
+                        }
+                    }
+                }
+            }
+
+            animateBoxDestruction(box) {
+                const duration = 1000;
+
+                new TWEEN.Tween(box.group.position)
+                    .to({ y: box.group.position.y + 1 }, duration)
+                    .easing(TWEEN.Easing.Quadratic.Out)
+                    .start();
+
+                new TWEEN.Tween(box.group.rotation)
+                    .to({ y: box.group.rotation.y + Math.PI * 2 }, duration)
+                    .easing(TWEEN.Easing.Quadratic.Out)
+                    .start();
+
+                new TWEEN.Tween(box.group.scale)
+                    .to({ x: 0, y: 0, z: 0 }, duration)
+                    .easing(TWEEN.Easing.Quadratic.In)
+                    .onComplete(() => {
+                        this.scene.remove(box.group);
+                    })
+                    .start();
+            }
+
+            spawnBox() {
+                // Vérifier si le nombre de boîtes générées a atteint le maximum pour le jour
+                if (this.packagesGenerated >= this.config.game.packagesPerDay) {
+                    return;
+                }
+
+                // Calculer la vitesse effective du tapis roulant
+                const effectiveConveyorSpeed = this.config.conveyorBelt.baseSpeed * this.config.speedFactor;
+
+                // Déterminer si la boîte sera interdite
+                const isForbiddenBox = Math.random() < this.config.game.forbiddenBoxProbability;
+
+                const box = new Box(
+                    this.config.boxGenerator.position,
+                    this.config.box.dimensions,
+                    this.config.box.wallThickness,
+                    this.scene,
+                    effectiveConveyorSpeed,
+                    this.config.forbiddenObjects,
+                    isForbiddenBox
+                );
+
+                this.boxes.push(box);
+                this.packagesGenerated++;
+            }
+
+            updateBoxes(delta) {
+                // Calculer la position de destruction effective
+                const destroyPositionX = this.config.boxDestroyer.position.x + 0.2;
+
+                for (let i = this.boxes.length - 1; i >= 0; i--) {
+                    const box = this.boxes[i];
+                    box.update(delta);
+
+                    if (box.isOutOfBounds(destroyPositionX)) {
+                        this.animateBoxDestruction(box);
+
+                        let moneyChange = 0;
+                        if (box.isForbidden) {
+                            moneyChange = -this.config.game.moneyLostPerBadBox;
+                            this.money += moneyChange;
+                        } else {
+                            moneyChange = this.config.game.moneyPerPackage;
+                            this.money += moneyChange;
+                        }
+
+                        this.packagesHandled++;
+                        this.updateUI();
+                        this.showMoneyChange(moneyChange);
+
+                        // Supprimer la boîte du tableau
+                        this.boxes.splice(i, 1);
+
+                        // Vérifier si le jour doit se terminer
+                        if (this.packagesHandled >= this.config.game.packagesPerDay && this.boxes.length === 0) {
+                            this.nextDay();
+                        }
+                    }
+                }
+            }
+
+            updatePlayer(delta) {
+                if (!this.controls.isLocked) return;
+
+                // Appliquer la friction
+                this.velocityPlayer.x -= this.velocityPlayer.x * 10.0 * delta;
+                this.velocityPlayer.z -= this.velocityPlayer.z * 10.0 * delta;
+
+                // Déterminer la direction
+                this.direction.z = Number(this.move.forward) - Number(this.move.backward);
+                this.direction.x = Number(this.move.right) - Number(this.move.left);
+                this.direction.normalize();
+
+                // Accélérer le joueur en fonction des touches pressées
+                if (this.move.forward || this.move.backward) this.velocityPlayer.z -= this.direction.z * 25.0 * delta;
+                if (this.move.left || this.move.right) this.velocityPlayer.x -= this.direction.x * 25.0 * delta;
+
+                // Déplacer le joueur
+                this.controls.moveRight(-this.velocityPlayer.x * delta);
+                this.controls.moveForward(-this.velocityPlayer.z * delta);
+            }
+
+            updateUI() {
+                document.getElementById('money').innerText = this.money;
+                document.getElementById('day').innerText = this.day;
+                document.getElementById('boxesHandled').innerText = this.packagesHandled;
+                document.getElementById('boxesTotal').innerText = this.config.game.packagesPerDay;
+            }
+
+            updatePackagesPerDay() {
+                // Mettre à jour le nombre de paquets par jour
+                this.config.game.packagesPerDay = this.day * 10;
+                this.packagesGenerated = 0; // Réinitialiser le compteur de boîtes générées
+            }
+
+            nextDay() {
+                this.day++;
+                this.packagesHandled = 0;
+                this.boxes = []; // Vider les boîtes restantes
+
+                // Augmenter la difficulté
+                this.increaseGameDifficulty();
+
+                this.updatePackagesPerDay();
+                this.updateUI();
+                this.updateForbiddenObjects();
+                this.updateForbiddenPanel();
+                this.showDayTransition();
+            }
+
+            increaseGameDifficulty() {
+                // Augmenter le facteur de vitesse
+                this.config.speedFactor *= 1.1; // Augmentation de 10%
+
+                // Augmenter l'argent gagné et perdu
+                this.config.game.moneyPerPackage += 5;
+                this.config.game.moneyLostPerBadBox += 10;
+
+                // Le nombre de paquets par jour est mis à jour dans updatePackagesPerDay()
+            }
+
+            showDayTransition() {
+                const dayTransition = document.getElementById('dayTransition');
+                dayTransition.innerText = `Jour ${this.day}`;
+                dayTransition.style.display = 'flex';
+                dayTransition.style.opacity = '1';
+
+                setTimeout(() => {
+                    new TWEEN.Tween(dayTransition.style)
+                        .to({ opacity: 0 }, 1000)
+                        .easing(TWEEN.Easing.Quadratic.Out)
+                        .onComplete(() => {
+                            dayTransition.style.display = 'none';
+                        })
+                        .start();
+                }, 1000);
+            }
+
+            showMoneyChange(amount) {
+                const moneyDisplay = document.getElementById('money');
+                const rect = moneyDisplay.getBoundingClientRect();
+
+                const moneyChange = document.createElement('div');
+                moneyChange.className = 'money-change';
+                moneyChange.style.left = `${rect.right + 50}px`; // Démarre 50px à droite
+                moneyChange.style.top = `${rect.top}px`;
+                moneyChange.style.color = amount > 0 ? 'green' : 'red';
+                moneyChange.innerText = `${amount > 0 ? '+' : '-'}${amount}€`;
+                document.body.appendChild(moneyChange);
+
+                new TWEEN.Tween(moneyChange.style)
+                    .to({ left: `${rect.right}px`, opacity: 0 }, 500)
+                    .easing(TWEEN.Easing.Quadratic.Out)
+                    .onComplete(() => {
+                        document.body.removeChild(moneyChange);
+                    })
+                    .start();
+            }
+
+            animate(currentTime) {
+                requestAnimationFrame(this.animate.bind(this));
+
+                if (!this.lastFrameTime) {
+                    this.lastFrameTime = currentTime;
+                    return;
+                }
+
+                const delta = (currentTime - this.lastFrameTime) / 1000;
+                this.lastFrameTime = currentTime;
+
+                TWEEN.update();
+
+                // Calculer l'intervalle de génération effectif
+                const effectiveSpawnInterval = this.config.boxGenerator.baseSpawnInterval / this.config.speedFactor;
+
+                // Génération des boîtes
+                if (this.packagesGenerated < this.config.game.packagesPerDay) {
+                    this.boxGenerator.elapsedTime += delta * 1000;
+
+                    if (this.boxGenerator.elapsedTime > effectiveSpawnInterval) {
+                        this.spawnBox();
+                        this.boxGenerator.elapsedTime = 0;
+                    }
+                }
+
+                this.updateBoxes(delta);
+                this.updatePlayer(delta);
+                this.renderer.render(this.scene, this.camera);
+            }
+        }
+
+        /**
+         * Fonction pour obtenir des éléments aléatoires d'un tableau
+         */
+        function getRandomElements(array, count) {
+            const shuffled = array.slice(0);
+            let i = array.length;
+            const min = i - count;
+            let temp, index;
+
+            while (i-- > min) {
+                index = Math.floor((i + 1) * Math.random());
+                temp = shuffled[index];
+                shuffled[index] = shuffled[i];
+                shuffled[i] = temp;
+            }
+
+            return shuffled.slice(min);
+        }
+
+        // Démarrer le jeu lorsque la fenêtre est chargée
+        window.addEventListener('load', () => {
+            new Game(CONFIG);
+        });
+    </script>
+</body>
+</html>
