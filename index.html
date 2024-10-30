@@ -61,12 +61,14 @@
             margin-bottom: 8px;
         }
 
-        .forbidden-color {
+        .forbidden-icon {
             width: 24px;
             height: 24px;
             margin-right: 12px;
             border: 1px solid #fff;
             border-radius: 4px;
+            background-size: cover;
+            background-position: center;
         }
 
         .forbidden-item span {
@@ -118,6 +120,7 @@
             z-index: 4;
             pointer-events: none;
             text-shadow: 1px 1px 4px rgba(0,0,0,0.5);
+            transition: all 1s ease-out;
         }
     </style>
 </head>
@@ -147,6 +150,9 @@
     <!-- Bibliothèques externes -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://unpkg.com/three@0.128.0/examples/js/controls/PointerLockControls.js"></script>
+    <!-- Inclusion du GLTFLoader pour charger les fichiers GLB -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <!-- Inclusion de TWEEN.js pour les animations -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
 
     <script>
@@ -158,7 +164,7 @@
                 aspect: window.innerWidth / window.innerHeight,
                 near: 0.1,
                 far: 1000,
-                position: { x: 0, y: 2.5, z: 5 } // Position initiale ajustée pour mieux voir le tapis roulant
+                position: { x: 0, y: 2.5, z: 5 }
             },
             renderer: { antialias: true },
             lighting: {
@@ -168,13 +174,13 @@
                 size: { width: 10, height: 1, depth: 2 },
                 color: 0x808080,
                 position: { x: 0, y: 0.25, z: 0 },
-                baseSpeed: 0.5 // Vitesse de base du tapis roulant
+                baseSpeed: 0.25
             },
             boxGenerator: {
                 size: { width: 0.1, height: 2, depth: 2 },
                 color: 0xff0000,
                 position: { x: -6.05, y: 1.1, z: 0 },
-                baseSpawnInterval: 2500 // Intervalle de base pour la génération des boîtes (5 secondes)
+                baseSpawnInterval: 5000
             },
             boxDestroyer: {
                 size: { width: 0.1, height: 2, depth: 2 },
@@ -196,9 +202,9 @@
                 packagesPerDay: 10, 
                 moneyPerPackage: 10,
                 moneyLostPerBadBox: 20,
-                forbiddenBoxProbability: 0.2 // Probabilité qu'une boîte soit interdite
+                forbiddenBoxProbability: 0.2
             },
-            speedFactor: 2.0, // Facteur de vitesse initial
+            speedFactor: 1.0,
             sceneMapping: {
                 objects: [
                     // Sol
@@ -290,7 +296,55 @@
         };
 
         /**
-         * Fonction utilitaire pour créer des objets
+         * Fonction pour précharger les modèles 3D
+         * @param {Array} models - Tableau des modèles à charger
+         * @returns {Promise<void>}
+         */
+        function preloadModels(models) {
+            const loader = new THREE.GLTFLoader();
+            const promises = models.map(model => {
+                return new Promise((resolve, reject) => {
+                    loader.load(model.path, gltf => {
+                        model.gltf = gltf;
+                        resolve();
+                    }, undefined, error => {
+                        console.error(`Erreur lors du chargement du modèle: ${model.path}`, error);
+                        resolve(); // Continuer même si un modèle échoue à charger
+                    });
+                });
+            });
+            return Promise.all(promises);
+        }
+
+        /**
+         * Fonction utilitaire pour obtenir un élément aléatoire d'un tableau
+         * @param {Array} array - Tableau d'éléments
+         * @returns {*} - Élément aléatoire du tableau
+         */
+        function getRandomElement(array) {
+            return array[Math.floor(Math.random() * array.length)];
+        }
+
+        /**
+         * Classe pour mapper la scène avec des objets de décoration.
+         */
+        class SceneMapper {
+            constructor(scene, mapperConfig) {
+                this.scene = scene;
+                this.mapperConfig = mapperConfig;
+                this.init();
+            }
+
+            init() {
+                this.mapperConfig.objects.forEach(objConfig => {
+                    const obj = createObject(objConfig.type, objConfig.options);
+                    this.scene.add(obj);
+                });
+            }
+        }
+
+        /**
+         * Fonction utilitaire pour créer des objets géométriques (si nécessaire)
          * @param {string} type - Type de l'objet (Box, Sphere, etc.)
          * @param {object} options - Options de configuration de l'objet
          * @returns {THREE.Mesh} - L'objet créé
@@ -379,44 +433,18 @@
         }
 
         /**
-         * Fonction utilitaire pour obtenir un élément aléatoire d'un tableau
-         * @param {Array} array - Tableau d'éléments
-         * @returns {*} - Élément aléatoire du tableau
-         */
-        function getRandomElement(array) {
-            return array[THREE.MathUtils.randInt(0, array.length - 1)];
-        }
-
-        /**
-         * Classe pour mapper la scène avec des objets de décoration.
-         */
-        class SceneMapper {
-            constructor(scene, mapperConfig) {
-                this.scene = scene;
-                this.mapperConfig = mapperConfig;
-                this.init();
-            }
-
-            init() {
-                this.mapperConfig.objects.forEach(objConfig => {
-                    const obj = createObject(objConfig.type, objConfig.options);
-                    this.scene.add(obj);
-                });
-            }
-        }
-
-        /**
          * Classe représentant une boîte dans le jeu.
          */
         class Box {
-            constructor(position, dimensions, wallThickness, scene, conveyorSpeed, forbiddenObjects, isForbiddenBox) {
+            constructor(position, dimensions, wallThickness, scene, conveyorSpeed, forbiddenObjects, isForbiddenBox, objectPool) {
                 this.group = new THREE.Group();
                 this.dimensions = dimensions;
                 this.wallThickness = wallThickness;
                 this.velocity = new THREE.Vector3(conveyorSpeed, 0, 0);
                 this.forbiddenObjects = forbiddenObjects;
                 this.isForbiddenBox = isForbiddenBox;
-                this.isForbidden = false; // Sera défini lors de l'ajout des objets
+                this.isForbidden = false;
+                this.objectPool = objectPool;
 
                 // Création des murs
                 this.createWalls();
@@ -510,55 +538,63 @@
             }
 
             isObjectForbidden(poolObject) {
-                return this.forbiddenObjects.some(obj => obj.type === poolObject.type && obj.color === poolObject.color);
+                return this.forbiddenObjects.some(obj => obj.name === poolObject.name);
             }
 
             getNonForbiddenObjects() {
-                return CONFIG.objectPool.filter(obj => !this.isObjectForbidden(obj));
+                return this.objectPool.filter(obj => !this.isObjectForbidden(obj));
             }
 
             addObjects() {
-                const { width, height, depth } = this.dimensions;
-                const margin = 0.05;
                 const numObjects = THREE.MathUtils.randInt(1, 3);
                 let hasForbiddenObject = false;
-                const nonForbiddenObjects = this.getNonForbiddenObjects();
+
+                const allowedObjects = this.objectPool.filter(obj => obj.category === 'allowed');
+                const forbiddenObjects = this.objectPool.filter(obj => obj.category === 'forbidden');
+
+                const positions = [
+                    { x: -0.25, y: -0.15, z: -0.35 }, // Haut gauche
+                    { x: 0.25, y: -0.15, z: -0.35 },  // Haut droite
+                    { x: -0.25, y: -0.15, z: 0 },     // Milieu gauche
+                    { x: 0.25, y: -0.15, z: 0 },      // Milieu droite
+                    { x: -0.25, y: -0.15, z: 0.35 },  // Bas gauche
+                    { x: 0.25, y: -0.15, z: 0.35 }    // Bas droite
+                ];
+
+                // Mélanger les positions pour les sélectionner aléatoirement
+                const shuffledPositions = positions.sort(() => Math.random() - 0.5);
 
                 for (let i = 0; i < numObjects; i++) {
                     let poolObject;
 
                     if (this.isForbiddenBox && !hasForbiddenObject && i === numObjects - 1) {
                         // S'assurer qu'au moins un objet interdit est ajouté
-                        poolObject = getRandomElement(this.forbiddenObjects);
+                        poolObject = getRandomElement(forbiddenObjects);
                         hasForbiddenObject = true;
                     } else {
-                        if (this.isForbiddenBox) {
-                            // Décider aléatoirement d'ajouter un objet interdit
-                            if (Math.random() < 0.5) {
-                                poolObject = getRandomElement(this.forbiddenObjects);
-                                hasForbiddenObject = true;
-                            } else {
-                                poolObject = getRandomElement(nonForbiddenObjects);
-                            }
+                        if (this.isForbiddenBox && Math.random() < 0.5) {
+                            poolObject = getRandomElement(forbiddenObjects);
+                            hasForbiddenObject = true;
                         } else {
-                            // Boîtes normales
-                            poolObject = getRandomElement(nonForbiddenObjects);
+                            poolObject = getRandomElement(allowedObjects);
                         }
                     }
 
-                    const object = createObject(poolObject.type, {
-                        color: poolObject.color,
-                        position: {
-                            x: THREE.MathUtils.randFloatSpread(width / 2 - margin),
-                            y: THREE.MathUtils.randFloatSpread(height / 2 - margin),
-                            z: THREE.MathUtils.randFloatSpread(depth / 2 - margin)
-                        }
-                    });
+                    // Obtenir une position disponible
+                    const position = shuffledPositions.pop();
+                    if (!position) break; // Plus de positions disponibles
+
+                    // Cloner le modèle pour éviter les références partagées
+                    const modelClone = poolObject.gltf.scene.clone();
+
+                    // Positionnement relatif à la boîte
+                    modelClone.position.set(position.x, position.y, position.z);
+                    modelClone.scale.set(0.4, 0.4, 0.4);
 
                     // Marquer l'objet comme interdit si nécessaire
-                    object.userData.isForbidden = this.isObjectForbidden(poolObject);
+                    modelClone.userData.isForbidden = poolObject.category === 'forbidden';
 
-                    this.group.add(object);
+                    this.group.add(modelClone);
                 }
 
                 this.isForbidden = hasForbiddenObject;
@@ -591,36 +627,35 @@
                 this.money = 0;
                 this.day = 1;
                 this.packagesHandled = 0;
-                this.packagesGenerated = 0; // Compteur des boîtes générées pour le jour en cours
+                this.packagesGenerated = 0;
                 this.boxGenerator = { ...config.boxGenerator, elapsedTime: 0 };
-                this.lastFrameTime = null;
                 this.move = { forward: false, backward: false, left: false, right: false };
                 this.velocityPlayer = new THREE.Vector3();
                 this.direction = new THREE.Vector3();
-                this.forbiddenObjectsList = []; // Liste des objets interdits
+                this.forbiddenObjectsList = [];
+                this.clock = new THREE.Clock();
+                this.objectPool = []; // Liste des modèles chargés
 
                 this.init();
             }
 
-            init() {
+            async init() {
                 this.setupScene();
                 this.setupCamera();
                 this.setupRenderer();
                 this.setupLighting();
                 this.setupControls();
                 this.setupEventListeners();
-                this.setupObjectPool();
+
+                // Charger les modèles depuis les listes définies directement dans le code
+                await this.setupObjectPool();
+
                 this.setupForbiddenObjects();
-
-                // Initialiser le SceneMapper avec la configuration de décoration
                 this.sceneMapper = new SceneMapper(this.scene, this.config.sceneMapping);
-
-                // Mettre à jour le nombre de boîtes pour le premier jour
                 this.updatePackagesPerDay();
-
                 this.updateUI();
                 this.showDayTransition();
-                requestAnimationFrame(this.animate.bind(this));
+                this.animate();
             }
 
             setupScene() {
@@ -648,7 +683,7 @@
                 const ambientLight = new THREE.AmbientLight(ambient.color);
                 this.scene.add(ambientLight);
 
-                // Lumière directionnelle pour mieux éclairer les objets
+                // Lumière directionnelle
                 const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
                 directionalLight.position.set(0, 10, 5);
                 this.scene.add(directionalLight);
@@ -683,32 +718,46 @@
                 document.addEventListener('mousedown', this.onMouseDown.bind(this), false);
             }
 
-            setupObjectPool() {
-                // Pré-définir une liste d'objets avec des formes et des couleurs spécifiques
-                CONFIG.objectPool = [
-                    { type: 'Box', color: 0xff0000, name: 'Boîte Rouge' },
-                    { type: 'Sphere', color: 0x00ff00, name: 'Sphère Verte' },
-                    { type: 'Cylinder', color: 0x0000ff, name: 'Cylindre Bleu' },
-                    { type: 'Cone', color: 0xffff00, name: 'Cône Jaune' },
-                    { type: 'Torus', color: 0xff00ff, name: 'Tore Magenta' },
-                    { type: 'Box', color: 0xffa500, name: 'Boîte Orange' },
-                    { type: 'Sphere', color: 0x800080, name: 'Sphère Violette' },
-                    // Ajoutez plus d'objets spécifiques si nécessaire
+            async setupObjectPool() {
+                // Définir directement les listes de modèles autorisés et interdits
+                const allowedModels = [
+                    { name: 'Burger', path: 'models/allowed/burger.glb' },
+                    // Ajoutez d'autres modèles autorisés ici
                 ];
+
+                const forbiddenModels = [
+                    { name: 'Burger', path: 'models/forbidden/burger.glb' },
+                    // Ajoutez d'autres modèles interdits ici
+                ];
+
+                // Construire objectPool en assignant la catégorie à chaque modèle
+                this.objectPool = [
+                    ...allowedModels.map(model => ({ ...model, category: 'allowed' })),
+                    ...forbiddenModels.map(model => ({ ...model, category: 'forbidden' }))
+                ];
+
+                // Précharger les modèles
+                await preloadModels(this.objectPool);
             }
 
             setupForbiddenObjects() {
-                // Initialiser la liste des objets interdits
                 this.forbiddenObjectsList = [];
                 this.updateForbiddenObjects();
                 this.updateForbiddenPanel();
             }
 
             updateForbiddenObjects() {
-                // Sélectionner les objets interdits
-                const totalObjects = CONFIG.objectPool.length;
-                const numForbidden = Math.min(this.day, totalObjects);
-                this.config.forbiddenObjects = getRandomElements(CONFIG.objectPool, numForbidden);
+                // Ajouter un nouvel objet interdit chaque jour
+                const forbiddenModels = this.objectPool.filter(obj => obj.category === 'forbidden');
+                const availableObjects = forbiddenModels.filter(obj =>
+                    !this.forbiddenObjectsList.some(forbidden => forbidden.name === obj.name)
+                );
+
+                if (availableObjects.length > 0) {
+                    const newForbidden = getRandomElement(availableObjects);
+                    this.forbiddenObjectsList.push(newForbidden);
+                    this.config.forbiddenObjects = [...this.forbiddenObjectsList];
+                }
             }
 
             updateForbiddenPanel() {
@@ -719,14 +768,14 @@
                     const item = document.createElement('div');
                     item.classList.add('forbidden-item');
 
-                    const colorBox = document.createElement('div');
-                    colorBox.classList.add('forbidden-color');
-                    colorBox.style.backgroundColor = `#${obj.color.toString(16).padStart(6, '0')}`;
+                    const icon = document.createElement('div');
+                    icon.classList.add('forbidden-icon');
+                    icon.style.backgroundImage = `url('icons/${obj.name}.png')`;
 
                     const label = document.createElement('span');
-                    label.innerText = obj.name || obj.type;
+                    label.innerText = obj.name;
 
-                    item.appendChild(colorBox);
+                    item.appendChild(icon);
                     item.appendChild(label);
                     forbiddenList.appendChild(item);
                 });
@@ -808,14 +857,13 @@
                         const lid = intersectedBox.group.getObjectByName('lid');
                         if (lid) {
                             // Animation d'ouverture du couvercle
-                            new TWEEN.Tween(lid.position)
-                                .to({ y: lid.position.y + 1 }, 500)
+                            new TWEEN.Tween(lid.rotation)
+                                .to({ x: -Math.PI / 2 }, 500)
                                 .easing(TWEEN.Easing.Quadratic.Out)
+                                .start()
                                 .onComplete(() => {
                                     intersectedBox.group.remove(lid);
-                                    // Vous pouvez gérer l'ouverture de la boîte ici si nécessaire
-                                })
-                                .start();
+                                });
                         }
                     }
                 }
@@ -848,15 +896,13 @@
                         let moneyChange = 0;
                         if (intersectedBox.isForbidden) {
                             moneyChange = this.config.game.moneyPerPackage;
-                            this.money += moneyChange;
                         } else {
                             moneyChange = -this.config.game.moneyLostPerBadBox;
-                            this.money += moneyChange;
                         }
 
+                        this.updateMoney(moneyChange);
                         this.packagesHandled++;
                         this.updateUI();
-                        this.showMoneyChange(moneyChange);
 
                         // Supprimer la boîte du tableau
                         const index = this.boxes.indexOf(intersectedBox);
@@ -871,38 +917,34 @@
                 }
             }
 
+            updateMoney(amount) {
+                this.money += amount;
+                this.updateUI();
+                this.showMoneyChange(amount);
+            }
+
             animateBoxDestruction(box) {
-                const duration = 1000;
-
-                new TWEEN.Tween(box.group.position)
-                    .to({ y: box.group.position.y + 1 }, duration)
-                    .easing(TWEEN.Easing.Quadratic.Out)
-                    .start();
-
+                // Animation de disparition avec rotation et réduction d'échelle
                 new TWEEN.Tween(box.group.rotation)
-                    .to({ y: box.group.rotation.y + Math.PI * 2 }, duration)
+                    .to({ y: box.group.rotation.y + Math.PI * 2 }, 1000)
                     .easing(TWEEN.Easing.Quadratic.Out)
                     .start();
 
                 new TWEEN.Tween(box.group.scale)
-                    .to({ x: 0, y: 0, z: 0 }, duration)
-                    .easing(TWEEN.Easing.Quadratic.In)
+                    .to({ x: 0, y: 0, z: 0 }, 1000)
+                    .easing(TWEEN.Easing.Back.In)
+                    .start()
                     .onComplete(() => {
                         this.scene.remove(box.group);
-                    })
-                    .start();
+                    });
             }
 
             spawnBox() {
-                // Vérifier si le nombre de boîtes générées a atteint le maximum pour le jour
                 if (this.packagesGenerated >= this.config.game.packagesPerDay) {
                     return;
                 }
 
-                // Calculer la vitesse effective du tapis roulant
                 const effectiveConveyorSpeed = this.config.conveyorBelt.baseSpeed * this.config.speedFactor;
-
-                // Déterminer si la boîte sera interdite
                 const isForbiddenBox = Math.random() < this.config.game.forbiddenBoxProbability;
 
                 const box = new Box(
@@ -912,7 +954,8 @@
                     this.scene,
                     effectiveConveyorSpeed,
                     this.config.forbiddenObjects,
-                    isForbiddenBox
+                    isForbiddenBox,
+                    this.objectPool
                 );
 
                 this.boxes.push(box);
@@ -920,7 +963,6 @@
             }
 
             updateBoxes(delta) {
-                // Calculer la position de destruction effective
                 const destroyPositionX = this.config.boxDestroyer.position.x + 0.2;
 
                 for (let i = this.boxes.length - 1; i >= 0; i--) {
@@ -928,25 +970,20 @@
                     box.update(delta);
 
                     if (box.isOutOfBounds(destroyPositionX)) {
-                        this.animateBoxDestruction(box);
+                        this.animateBoxDestruction(box); // Animer la destruction
 
                         let moneyChange = 0;
                         if (box.isForbidden) {
                             moneyChange = -this.config.game.moneyLostPerBadBox;
-                            this.money += moneyChange;
                         } else {
                             moneyChange = this.config.game.moneyPerPackage;
-                            this.money += moneyChange;
                         }
-
+                        this.updateMoney(moneyChange);
                         this.packagesHandled++;
                         this.updateUI();
-                        this.showMoneyChange(moneyChange);
 
-                        // Supprimer la boîte du tableau
                         this.boxes.splice(i, 1);
 
-                        // Vérifier si le jour doit se terminer
                         if (this.packagesHandled >= this.config.game.packagesPerDay && this.boxes.length === 0) {
                             this.nextDay();
                         }
@@ -983,17 +1020,15 @@
             }
 
             updatePackagesPerDay() {
-                // Mettre à jour le nombre de paquets par jour
                 this.config.game.packagesPerDay = this.day * 10;
-                this.packagesGenerated = 0; // Réinitialiser le compteur de boîtes générées
+                this.packagesGenerated = 0;
             }
 
             nextDay() {
                 this.day++;
                 this.packagesHandled = 0;
-                this.boxes = []; // Vider les boîtes restantes
+                this.boxes = [];
 
-                // Augmenter la difficulté
                 this.increaseGameDifficulty();
 
                 this.updatePackagesPerDay();
@@ -1004,31 +1039,41 @@
             }
 
             increaseGameDifficulty() {
-                // Augmenter le facteur de vitesse
-                this.config.speedFactor *= 1.1; // Augmentation de 10%
-
-                // Augmenter l'argent gagné et perdu
+                this.config.speedFactor *= 1.1;
                 this.config.game.moneyPerPackage += 5;
                 this.config.game.moneyLostPerBadBox += 10;
-
-                // Le nombre de paquets par jour est mis à jour dans updatePackagesPerDay()
             }
 
             showDayTransition() {
                 const dayTransition = document.getElementById('dayTransition');
                 dayTransition.innerText = `Jour ${this.day}`;
                 dayTransition.style.display = 'flex';
-                dayTransition.style.opacity = '1';
+                dayTransition.style.opacity = '0';
 
-                setTimeout(() => {
-                    new TWEEN.Tween(dayTransition.style)
-                        .to({ opacity: 0 }, 1000)
-                        .easing(TWEEN.Easing.Quadratic.Out)
-                        .onComplete(() => {
-                            dayTransition.style.display = 'none';
-                        })
-                        .start();
-                }, 1000);
+                // Animation d'apparition
+                new TWEEN.Tween({ opacity: 0 })
+                    .to({ opacity: 1 }, 1000)
+                    .onUpdate(function (object) {
+                        dayTransition.style.opacity = object.opacity;
+                    })
+                    .easing(TWEEN.Easing.Quadratic.Out)
+                    .start()
+                    .onComplete(() => {
+                        // Maintenir l'affichage pendant 2 secondes
+                        setTimeout(() => {
+                            // Animation de disparition
+                            new TWEEN.Tween({ opacity: 1 })
+                                .to({ opacity: 0 }, 1000)
+                                .onUpdate(function (object) {
+                                    dayTransition.style.opacity = object.opacity;
+                                })
+                                .easing(TWEEN.Easing.Quadratic.In)
+                                .start()
+                                .onComplete(() => {
+                                    dayTransition.style.display = 'none';
+                                });
+                        }, 2000);
+                    });
             }
 
             showMoneyChange(amount) {
@@ -1037,38 +1082,37 @@
 
                 const moneyChange = document.createElement('div');
                 moneyChange.className = 'money-change';
-                moneyChange.style.left = `${rect.right + 50}px`; // Démarre 50px à droite
-                moneyChange.style.top = `${rect.top}px`;
+                moneyChange.style.left = `${window.innerWidth / 2}px`;
+                moneyChange.style.top = `${window.innerHeight / 2}px`;
                 moneyChange.style.color = amount > 0 ? 'green' : 'red';
-                moneyChange.innerText = `${amount > 0 ? '+' : '-'}${amount}€`;
+                moneyChange.innerText = `${amount > 0 ? '+' : '-'}${Math.abs(amount)}€`;
                 document.body.appendChild(moneyChange);
 
-                new TWEEN.Tween(moneyChange.style)
-                    .to({ left: `${rect.right}px`, opacity: 0 }, 500)
+                new TWEEN.Tween({ x: window.innerWidth / 2, y: window.innerHeight / 2, opacity: 1 })
+                    .to({ x: rect.left + rect.width / 2, y: rect.top - 30, opacity: 0 }, 1000)
+                    .onUpdate(function (object) {
+                        moneyChange.style.left = `${object.x}px`;
+                        moneyChange.style.top = `${object.y}px`;
+                        moneyChange.style.opacity = object.opacity;
+                    })
                     .easing(TWEEN.Easing.Quadratic.Out)
+                    .start()
                     .onComplete(() => {
                         document.body.removeChild(moneyChange);
-                    })
-                    .start();
+                    });
             }
 
-            animate(currentTime) {
+            animate() {
                 requestAnimationFrame(this.animate.bind(this));
 
-                if (!this.lastFrameTime) {
-                    this.lastFrameTime = currentTime;
-                    return;
-                }
+                const delta = this.clock.getDelta();
 
-                const delta = (currentTime - this.lastFrameTime) / 1000;
-                this.lastFrameTime = currentTime;
-
+                // Mise à jour des animations TWEEN
                 TWEEN.update();
 
-                // Calculer l'intervalle de génération effectif
+                // Génération des boîtes
                 const effectiveSpawnInterval = this.config.boxGenerator.baseSpawnInterval / this.config.speedFactor;
 
-                // Génération des boîtes
                 if (this.packagesGenerated < this.config.game.packagesPerDay) {
                     this.boxGenerator.elapsedTime += delta * 1000;
 
@@ -1082,25 +1126,6 @@
                 this.updatePlayer(delta);
                 this.renderer.render(this.scene, this.camera);
             }
-        }
-
-        /**
-         * Fonction pour obtenir des éléments aléatoires d'un tableau
-         */
-        function getRandomElements(array, count) {
-            const shuffled = array.slice(0);
-            let i = array.length;
-            const min = i - count;
-            let temp, index;
-
-            while (i-- > min) {
-                index = Math.floor((i + 1) * Math.random());
-                temp = shuffled[index];
-                shuffled[index] = shuffled[i];
-                shuffled[i] = temp;
-            }
-
-            return shuffled.slice(min);
         }
 
         // Démarrer le jeu lorsque la fenêtre est chargée
