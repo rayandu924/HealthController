@@ -1,636 +1,175 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
     <meta charset="UTF-8">
-    <title>Jeu de Douane 3D avec Three.js</title>
+    <title>Jeu Three.js avec Physique et Gameplay</title>
     <style>
-        /* Styles de base */
+        /* Styles de base pour le corps et les instructions */
         body {
             margin: 0;
             overflow: hidden;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #1a1a1a;
-            color: #f0f0f0;
+            background-color: #000;
         }
 
-        /* Interface Utilisateur */
-        #ui {
+        #instructions {
             position: absolute;
-            top: 10px;
-            left: 10px;
-            z-index: 1;
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* Informations du jeu */
-        #info {
-            position: relative;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            min-width: 200px;
-        }
-
-        #info p {
-            margin: 5px 0;
-            font-size: 16px;
-        }
-
-        /* Panneau des objets interdits */
-        #forbiddenPanel {
-            background: rgba(0, 0, 0, 0.7);
-            padding: 15px;
-            border-radius: 8px;
-            max-width: 250px;
-            overflow-y: auto;
-            max-height: 400px;
-        }
-
-        #forbiddenPanel h3 {
-            margin-top: 0;
-            font-size: 18px;
-            margin-bottom: 10px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            max-width: 300px;
             text-align: center;
-        }
-
-        .forbidden-item {
-            display: flex;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-
-        .forbidden-icon {
-            width: 24px;
-            height: 24px;
-            margin-right: 12px;
-            border: 1px solid #fff;
-            border-radius: 4px;
-            background-size: cover;
-            background-position: center;
-        }
-
-        .forbidden-item span {
-            font-size: 16px;
-        }
-
-        /* Écran de blocage au démarrage */
-        #blocker {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.85);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 28px;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            user-select: none;
             cursor: pointer;
-            z-index: 2;
+            font-size: 24px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            border-radius: 10px;
         }
 
-        #blocker:hover {
-            background-color: rgba(0,0,0,0.9);
-        }
-
-        /* Transition de jour */
-        #dayTransition {
+        /* Style pour l'affichage du score */
+        #score {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: black;
-            color: white;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            font-size: 48px;
-            z-index: 3;
-        }
-
-        /* Animation de gain/perte d'argent */
-        .money-change {
-            position: absolute;
-            font-size: 30px; /* Taille augmentée */
-            font-weight: bold;
-            z-index: 4;
-            pointer-events: none;
-            text-shadow: 1px 1px 4px rgba(0,0,0,0.5);
-            transition: all 1s ease-out;
+            top: 20px;
+            left: 20px;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            font-size: 24px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px 20px;
+            border-radius: 5px;
         }
     </style>
 </head>
+
 <body>
-    <!-- Interface Utilisateur -->
-    <div id="ui">
-        <div id="info">
-            <p>💰 Argent: <span id="money">0</span>€</p>
-            <p>📅 Jour: <span id="day">1</span></p>
-            <p>📦 Boîtes contrôlées: <span id="boxesHandled">0</span>/<span id="boxesTotal">10</span></p>
-        </div>
-        <!-- Panneau des Objets Interdits -->
-        <div id="forbiddenPanel">
-            <h3>Objets Interdits</h3>
-            <div id="forbiddenList">
-                <!-- Liste des objets interdits sera générée ici -->
-            </div>
-        </div>
-    </div>
+    <!-- Instructions pour activer les contrôles -->
+    <div id="instructions">Cliquez pour jouer</div>
+    <!-- Affichage du score -->
+    <div id="score">Score: 0</div>
+    <!-- Charger les scripts principaux -->
 
-    <!-- Écran de démarrage -->
-    <div id="blocker">Cliquez pour commencer</div>
-
-    <!-- Transition de jour -->
-    <div id="dayTransition"></div>
-
-    <!-- Bibliothèques externes -->
+    <!-- Charger Three.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://unpkg.com/three@0.128.0/examples/js/controls/PointerLockControls.js"></script>
-    <!-- Inclusion du GLTFLoader pour charger les fichiers GLB -->
+
+    <!-- Charger Cannon.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
+
+    <!-- Charger GLTFLoader -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-    <!-- Inclusion de TWEEN.js pour les animations -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
+
+    <!-- Charger PointerLockControls -->
+    <script src="https://unpkg.com/three@0.128.0/examples/js/controls/PointerLockControls.js"></script>
 
     <script>
-        // Configuration du jeu et du mapping de la scène
-        const CONFIG = {
-            scene: { backgroundColor: 0x555555 },
-            camera: {
-                fov: 75,
-                aspect: window.innerWidth / window.innerHeight,
-                near: 0.1,
-                far: 1000,
-                position: { x: 0, y: 2.5, z: 5 }
-            },
-            renderer: { antialias: true },
-            lighting: {
-                ambient: { color: 0x404040 }
-            },
-            conveyorBelt: {
-                size: { width: 10, height: 1, depth: 2 },
-                color: 0x808080,
-                position: { x: 0, y: 0.25, z: 0 },
-                baseSpeed: 0.25
-            },
-            boxGenerator: {
-                size: { width: 0.1, height: 2, depth: 2 },
-                color: 0xff0000,
-                position: { x: -6.05, y: 1.1, z: 0 },
-                baseSpawnInterval: 5000
-            },
-            boxDestroyer: {
-                size: { width: 0.1, height: 2, depth: 2 },
-                color: 0x000000,
-                position: { x: 5.05, y: 1, z: 0 }
-            },
-            player: { height: 2.5 },
-            box: {
-                dimensions: { width: 1, height: 0.5, depth: 1 },
-                wallThickness: 0.05,
-                velocity: { x: 0.05, y: 0, z: 0 }
-            },
-            boxMaterials: {
-                lidColor: 0x421c01,
-                wallColor: 0xa65b02,
-                bottomColor: 0xe3881b
-            },
-            game: { 
-                packagesPerDay: 10, 
-                moneyPerPackage: 10,
-                moneyLostPerBadBox: 20,
-                forbiddenBoxProbability: 0.2
-            },
-            speedFactor: 1.0,
-            sceneMapping: {
-                objects: [
-                    // Sol
-                    {
-                        type: 'Box',
-                        options: {
-                            dimensions: { width: 10, height: 0.1, depth: 5 },
-                            material: new THREE.MeshPhongMaterial({ color: 0x228B22 }),
-                            position: { x: 0, y: 0, z: 3.5 },
-                            rotation: { x: 0, y: 0, z: 0 }
-                        }
-                    },
-                    // Tapis roulant
-                    {
-                        type: 'Box',
-                        options: {
-                            dimensions: { width: 10, height: 1.5, depth: 2 },
-                            material: new THREE.MeshPhongMaterial({ color: 0x808080 }),
-                            position: { x: 0, y: 0.25, z: 0 }
-                        }
-                    },
-                    // Plateau 3D
-                    {
-                        type: 'GLTF',
-                        options: {
-                            path: 'models/plateau.glb', // Assurez-vous que ce chemin est correct
-                            position: { x: 0, y: 0, z: 0 },
-                            scale: { x: 1, y: 1, z: 1 },
-                            rotation: { x: 0, y: 0, z: 0 }
-                        }
-                    },
-                    // Murs et plafond
-                    {
-                        type: 'Box',
-                        options: {
-                            dimensions: { width: 10, height: 3, depth: 0.1 },
-                            material: new THREE.MeshPhongMaterial({ color: 0x5e5529 }),
-                            position: { x: 0, y: 1.5, z: -1 }
-                        }
-                    },
-                    {
-                        type: 'Box',
-                        options: {
-                            dimensions: { width: 10, height: 3, depth: 0.1 },
-                            material: new THREE.MeshPhongMaterial({ color: 0x5e5529 }),
-                            position: { x: 0, y: 1.5, z: 6 }
-                        }
-                    },
-                    {
-                        type: 'Box',
-                        options: {
-                            dimensions: { width: 7, height: 3, depth: 0.1 },
-                            material: new THREE.MeshPhongMaterial({ color: 0x5e5529 }),
-                            position: { x: 5, y: 1.5, z: 2.55 },
-                            rotation: { x: 0, y: Math.PI/2, z: 0 }
-                        }
-                    },
-                    {
-                        type: 'Box',
-                        options: {
-                            dimensions: { width: 7, height: 3, depth: 0.1 },
-                            material: new THREE.MeshPhongMaterial({ color: 0x5e5529 }),
-                            position: { x: -5, y: 1.5, z: 2.55 },
-                            rotation: { x: 0, y: Math.PI/2, z: 0 }
-                        }
-                    },
-                    // Plafond
-                    {
-                        type: 'Box',
-                        options: {
-                            dimensions: { width: 10, height: 0.1, depth: 7 },
-                            material: new THREE.MeshPhongMaterial({ color: 0x228B22 }),
-                            position: { x: 0, y: 3, z: 2.5 },
-                            rotation: { x: 0, y: 0, z: 0 }
-                        }
-                    },
-                ]
-            },
-            forbiddenObjects: [], // À définir dynamiquement
-            objectPool: [] // Liste des objets prédéfinis
-        };
+        // Votre code JavaScript ici
 
         /**
-         * Fonction pour précharger les modèles 3D
-         * @param {Array} models - Tableau des modèles à charger
-         * @returns {Promise<void>}
+         * Fonction utilitaire pour gérer les matériaux dans le monde physique.
+         * Évite la duplication des matériaux en les stockant dans physicsWorld.materials.
          */
-        function preloadModels(models) {
-            const loader = new THREE.GLTFLoader();
-            const promises = models.map(model => {
-                return new Promise((resolve, reject) => {
-                    loader.load(model.path, gltf => {
-                        model.gltf = gltf;
-                        resolve();
-                    }, undefined, error => {
-                        console.error(`Erreur lors du chargement du modèle: ${model.path}`, error);
-                        resolve(); // Continuer même si un modèle échoue à charger
-                    });
-                });
-            });
-            return Promise.all(promises);
-        }
-
-        /**
-         * Fonction utilitaire pour obtenir un élément aléatoire d'un tableau
-         * @param {Array} array - Tableau d'éléments
-         * @returns {*} - Élément aléatoire du tableau
-         */
-        function getRandomElement(array) {
-            return array[Math.floor(Math.random() * array.length)];
-        }
-
-        /**
-         * Classe pour mapper la scène avec des objets de décoration.
-         */
-        class SceneMapper {
-            constructor(scene, mapperConfig) {
-                this.scene = scene;
-                this.mapperConfig = mapperConfig;
-                this.init();
+        function getOrCreateMaterial(physicsWorld, materialConfig) {
+            if (!physicsWorld.materials) {
+                physicsWorld.materials = {};
             }
 
-            init() {
-                this.mapperConfig.objects.forEach(objConfig => {
-                    const obj = createObject(objConfig.type, objConfig.options);
-                    if (obj) {
-                        this.scene.add(obj);
-                    }
-                });
+            let material = physicsWorld.materials[materialConfig.name];
+            if (!material) {
+                material = new CANNON.Material(materialConfig.name);
+                if (materialConfig.friction !== undefined) {
+                    material.friction = materialConfig.friction;
+                }
+                if (materialConfig.restitution !== undefined) {
+                    material.restitution = materialConfig.restitution;
+                }
+                physicsWorld.materials[materialConfig.name] = material;
+            }
+            return material;
+        }
+
+        // Classe de gestion du score
+        class ScoreSystem {
+            constructor(elementId) {
+                this.score = 0;
+                this.scoreElement = document.getElementById(elementId);
+            }
+
+            addPoints(points) {
+                this.score += points;
+                this.updateDisplay();
+            }
+
+            updateDisplay() {
+                this.scoreElement.textContent = `Score: ${Math.floor(this.score)}`;
             }
         }
 
-        /**
-         * Fonction utilitaire pour créer des objets géométriques ou charger des modèles GLTF
-         * @param {string} type - Type de l'objet (Box, GLTF, Sphere, etc.)
-         * @param {object} options - Options de configuration de l'objet
-         * @returns {THREE.Mesh | THREE.Group | null} - L'objet créé ou null si chargé asynchrone
-         */
-        function createObject(type, options = {}) {
-            let mesh = null;
-            switch (type) {
-                case 'Box':
-                    const geometry = new THREE.BoxGeometry(
-                        options.dimensions?.width || 0.5,
-                        options.dimensions?.height || 0.5,
-                        options.dimensions?.depth || 0.5
-                    );
-                    const material = options.material || new THREE.MeshPhongMaterial({ color: options.color || 0xffffff });
-                    mesh = new THREE.Mesh(geometry, material);
-                    mesh.castShadow = true;
-                    mesh.receiveShadow = true;
-
-                    if (options.position) {
-                        mesh.position.set(
-                            options.position.x || 0,
-                            options.position.y || 0,
-                            options.position.z || 0
-                        );
-                    }
-
-                    if (options.rotation) {
-                        mesh.rotation.set(
-                            options.rotation.x || 0,
-                            options.rotation.y || 0,
-                            options.rotation.z || 0
-                        );
-                    }
-
-                    if (options.scale) {
-                        mesh.scale.set(
-                            options.scale.x || 1,
-                            options.scale.y || 1,
-                            options.scale.z || 1
-                        );
-                    }
-
-                    if (options.name) {
-                        mesh.name = options.name;
-                    }
-
-                    if (options.userData) {
-                        mesh.userData = options.userData;
-                    }
-
-                    break;
-                case 'GLTF':
-                    const loader = new THREE.GLTFLoader();
-                    loader.load(options.path, (gltf) => {
-                        mesh = gltf.scene;
-                        mesh.traverse((node) => {
-                            if (node.isMesh) {
-                                node.castShadow = true;
-                                node.receiveShadow = true;
-                            }
-                        });
-                        if (options.position) {
-                            mesh.position.set(
-                                options.position.x || 0,
-                                options.position.y || 0,
-                                options.position.z || 0
-                            );
-                        }
-                        if (options.rotation) {
-                            mesh.rotation.set(
-                                options.rotation.x || 0,
-                                options.rotation.y || 0,
-                                options.rotation.z || 0
-                            );
-                        }
-                        if (options.scale) {
-                            mesh.scale.set(
-                                options.scale.x || 1,
-                                options.scale.y || 1,
-                                options.scale.z || 1
-                            );
-                        }
-                        if (options.name) {
-                            mesh.name = options.name;
-                        }
-                        if (options.userData) {
-                            mesh.userData = options.userData;
-                        }
-                        // Pas besoin d'ajouter ici car SceneMapper ajoute déjà l'objet
-                    }, undefined, error => {
-                        console.error(`Erreur lors du chargement du modèle GLTF: ${options.path}`, error);
-                    });
-                    break;
-                // Vous pouvez ajouter d'autres types ici si nécessaire
-                default:
-                    console.warn(`Type de géométrie inconnu: ${type}`);
-                    const defaultGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
-                    const defaultMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff });
-                    mesh = new THREE.Mesh(defaultGeometry, defaultMaterial);
-            }
-
-            return mesh;
-        }
-
-        /**
-         * Classe principale du jeu.
-         */
-        class Game {
-            constructor(config) {
-                this.config = config;
-                this.scene = null;
-                this.camera = null;
-                this.renderer = null;
-                this.controls = null;
-                this.boxes = [];
-                this.money = 0;
-                this.day = 1;
-                this.packagesHandled = 0;
-                this.packagesGenerated = 0;
-                this.boxGenerator = { ...config.boxGenerator, elapsedTime: 0 };
-                this.move = { forward: false, backward: false, left: false, right: false };
-                this.velocityPlayer = new THREE.Vector3();
-                this.direction = new THREE.Vector3();
-                this.forbiddenObjectsList = [];
-                this.clock = new THREE.Clock();
-                this.objectPool = []; // Liste des modèles chargés
-
-                this.init();
-            }
-
-            async init() {
-                this.setupScene();
-                this.setupCamera();
-                this.setupRenderer();
-                this.setupLighting();
-                this.setupControls();
-                this.setupEventListeners();
-
-                // Charger les modèles depuis les listes définies directement dans le code
-                await this.setupObjectPool();
-
-                this.setupForbiddenObjects();
-                this.sceneMapper = new SceneMapper(this.scene, this.config.sceneMapping);
-                this.updatePackagesPerDay();
-                this.updateUI();
-                this.showDayTransition();
-                this.animate();
-            }
-
-            setupScene() {
+        // Classe de gestion de la scène
+        class GameScene {
+            constructor() {
+                // Création de la scène
                 this.scene = new THREE.Scene();
-                this.scene.background = new THREE.Color(this.config.scene.backgroundColor);
-            }
 
-            setupCamera() {
-                const { fov, aspect, near, far, position } = this.config.camera;
-                this.camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
-                this.camera.position.set(position.x, position.y, position.z);
-            }
+                // Configuration de la caméra
+                this.camera = new THREE.PerspectiveCamera(
+                    75,
+                    window.innerWidth / window.innerHeight,
+                    0.1,
+                    1000
+                );
+                this.camera.position.set(0, 1.6, 5);
 
-            setupRenderer() {
-                const { antialias } = this.config.renderer;
-                this.renderer = new THREE.WebGLRenderer({ antialias });
+                // Configuration du rendu
+                this.renderer = new THREE.WebGLRenderer({ antialias: true });
                 this.renderer.setSize(window.innerWidth, window.innerHeight);
-                this.renderer.shadowMap.enabled = true; // Activer les ombres
-                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Type d'ombre
                 document.body.appendChild(this.renderer.domElement);
-            }
 
-            setupLighting() {
-                const { ambient } = this.config.lighting;
-
-                // Lumière ambiante
-                const ambientLight = new THREE.AmbientLight(ambient.color, 0.6); // Intensité augmentée
-                this.scene.add(ambientLight);
-
-                // Lumière directionnelle principale
-                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8); // Intensité augmentée
+                // Ajout d'une lumière directionnelle
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
                 directionalLight.position.set(5, 10, 7.5);
-                directionalLight.castShadow = true;
-                directionalLight.shadow.camera.top = 10;
-                directionalLight.shadow.camera.bottom = -10;
-                directionalLight.shadow.camera.left = -10;
-                directionalLight.shadow.camera.right = 10;
-                directionalLight.shadow.mapSize.width = 1024;
-                directionalLight.shadow.mapSize.height = 1024;
                 this.scene.add(directionalLight);
 
-                // Lumière supplémentaire (par exemple, une lumière point)
-                const pointLight = new THREE.PointLight(0xffffff, 0.5);
-                pointLight.position.set(-5, 5, -5);
-                this.scene.add(pointLight);
+                // Création du monde physique
+                this.physicsWorld = new CANNON.World();
+                this.physicsWorld.gravity.set(0, -9.82, 0);
+                this.physicsWorld.solver.iterations = 20;
+                this.physicsWorld.broadphase = new CANNON.NaiveBroadphase();
 
-                // Optionnel : ajouter une lumière d'ambiance supplémentaire
-                const ambientLight2 = new THREE.AmbientLight(0x404040, 0.3);
-                this.scene.add(ambientLight2);
+                // Gestion du redimensionnement
+                window.addEventListener('resize', this.onWindowResize.bind(this));
+
+                // Création du sol
+                this.createGround();
             }
 
-            setupControls() {
-                this.controls = new THREE.PointerLockControls(this.camera, document.body);
-                const blocker = document.getElementById('blocker');
+            createGround() {
+                // Création du matériau du sol
+                const groundMaterialConfig = {
+                    name: "groundMaterial",
+                    friction: 0.5,
+                    restitution: 0.3,
+                };
+                const groundMaterial = getOrCreateMaterial(this.physicsWorld, groundMaterialConfig);
 
-                blocker.addEventListener('click', () => this.controls.lock(), false);
-
-                this.controls.addEventListener('lock', () => {
-                    blocker.style.display = 'none';
+                // Création du sol physique
+                const groundBody = new CANNON.Body({
+                    mass: 0,
+                    shape: new CANNON.Plane(),
+                    material: groundMaterial,
                 });
+                groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
+                this.physicsWorld.addBody(groundBody);
 
-                this.controls.addEventListener('unlock', () => {
-                    blocker.style.display = 'flex';
-                });
-
-                this.scene.add(this.controls.getObject());
-                this.controls.getObject().position.set(
-                    this.config.camera.position.x,
-                    this.config.player.height,
-                    this.config.camera.position.z
+                // Création du sol graphique
+                const groundMesh = new THREE.Mesh(
+                    new THREE.PlaneGeometry(100, 100),
+                    new THREE.MeshStandardMaterial({ color: 0x808080 })
                 );
-            }
-
-            setupEventListeners() {
-                window.addEventListener('resize', this.onWindowResize.bind(this), false);
-                document.addEventListener('keydown', this.onKeyDown.bind(this), false);
-                document.addEventListener('keyup', this.onKeyUp.bind(this), false);
-                document.addEventListener('mousedown', this.onMouseDown.bind(this), false);
-            }
-
-            async setupObjectPool() {
-                // Définir directement les listes de modèles autorisés et interdits
-                const allowedModels = [
-                    { name: 'Burger', path: 'models/allowed/burger.glb', size: { x: 0.4, y: 0.4, z: 0.4 }, rotation: { x: 0, y: 0, z: 0 } },
-                    // Ajoutez d'autres modèles autorisés ici avec leurs propres tailles et rotations
-                ];
-
-                const forbiddenModels = [
-                    { name: 'Burger', path: 'models/forbidden/burger.glb', size: { x: 0.4, y: 0.4, z: 0.4 }, rotation: { x: 0, y: 0, z: 0 } },
-                    // Ajoutez d'autres modèles interdits ici avec leurs propres tailles et rotations
-                ];
-
-                // Ajouter le plateau GLB
-                const plateauModel = { name: 'Plateau', path: 'models/plateau.glb', category: 'allowed', size: { x: 1, y: 1, z: 1 }, rotation: { x: 0, y: 0, z: 0 } };
-                allowedModels.push(plateauModel);
-
-                // Construire objectPool en assignant la catégorie à chaque modèle
-                this.objectPool = [
-                    ...allowedModels.map(model => ({ ...model, category: 'allowed' })),
-                    ...forbiddenModels.map(model => ({ ...model, category: 'forbidden' }))
-                ];
-
-                // Précharger les modèles
-                await preloadModels(this.objectPool);
-            }
-
-            setupForbiddenObjects() {
-                this.forbiddenObjectsList = [];
-                this.updateForbiddenObjects();
-                this.updateForbiddenPanel();
-            }
-
-            updateForbiddenObjects() {
-                // Ajouter un nouvel objet interdit chaque jour
-                const forbiddenModels = this.objectPool.filter(obj => obj.category === 'forbidden');
-                const availableObjects = forbiddenModels.filter(obj =>
-                    !this.forbiddenObjectsList.some(forbidden => forbidden.name === obj.name)
-                );
-
-                if (availableObjects.length > 0) {
-                    const newForbidden = getRandomElement(availableObjects);
-                    this.forbiddenObjectsList.push(newForbidden);
-                    this.config.forbiddenObjects = [...this.forbiddenObjectsList];
-                }
-            }
-
-            updateForbiddenPanel() {
-                const forbiddenList = document.getElementById('forbiddenList');
-                forbiddenList.innerHTML = ''; // Réinitialiser la liste
-
-                this.config.forbiddenObjects.forEach(obj => {
-                    const item = document.createElement('div');
-                    item.classList.add('forbidden-item');
-
-                    const icon = document.createElement('div');
-                    icon.classList.add('forbidden-icon');
-                    icon.style.backgroundImage = `url('icons/${obj.name}.png')`;
-
-                    const label = document.createElement('span');
-                    label.innerText = obj.name;
-
-                    item.appendChild(icon);
-                    item.appendChild(label);
-                    forbiddenList.appendChild(item);
-                });
+                groundMesh.rotation.x = -Math.PI / 2;
+                this.scene.add(groundMesh);
             }
 
             onWindowResize() {
@@ -638,1029 +177,712 @@
                 this.camera.updateProjectionMatrix();
                 this.renderer.setSize(window.innerWidth, window.innerHeight);
             }
-
-            onKeyDown(event) {
-                switch (event.code) {
-                    case 'KeyW':
-                    case 'ArrowUp':
-                        this.move.forward = true;
-                        break;
-                    case 'KeyS':
-                    case 'ArrowDown':
-                        this.move.backward = true;
-                        break;
-                    case 'KeyA':
-                    case 'ArrowLeft':
-                        this.move.left = true;
-                        break;
-                    case 'KeyD':
-                    case 'ArrowRight':
-                        this.move.right = true;
-                        break;
-                    case 'KeyE':
-                        this.tryDestroyBox();
-                        break;
-                }
-            }
-
-            onKeyUp(event) {
-                switch (event.code) {
-                    case 'KeyW':
-                    case 'ArrowUp':
-                        this.move.forward = false;
-                        break;
-                    case 'KeyS':
-                    case 'ArrowDown':
-                        this.move.backward = false;
-                        break;
-                    case 'KeyA':
-                    case 'ArrowLeft':
-                        this.move.left = false;
-                        break;
-                    case 'KeyD':
-                    case 'ArrowRight':
-                        this.move.right = false;
-                        break;
-                }
-            }
-
-            onMouseDown(event) {
-                if (!this.controls.isLocked) return;
-
-                const raycaster = new THREE.Raycaster();
-                const mouse = new THREE.Vector2();
-
-                // Pointeur au centre de l'écran
-                mouse.x = 0;
-                mouse.y = 0;
-
-                raycaster.setFromCamera(mouse, this.camera);
-
-                const intersects = raycaster.intersectObjects(
-                    this.boxes.map(box => box.group),
-                    true
-                );
-
-                if (intersects.length > 0) {
-                    const intersectedBoxGroup = intersects[0].object.parent;
-                    const intersectedBox = this.boxes.find(box => box.group === intersectedBoxGroup);
-
-                    if (intersectedBox) {
-                        const lid = intersectedBox.group.getObjectByName('lid');
-                        if (lid) {
-                            // Supprimer le couvercle sans animation
-                            intersectedBox.group.remove(lid);
-                        }
-                    }
-                }
-            }
-
-            tryDestroyBox() {
-                if (!this.controls.isLocked) return;
-
-                const raycaster = new THREE.Raycaster();
-                const mouse = new THREE.Vector2();
-
-                // Pointeur au centre de l'écran
-                mouse.x = 0;
-                mouse.y = 0;
-
-                raycaster.setFromCamera(mouse, this.camera);
-
-                const intersects = raycaster.intersectObjects(
-                    this.boxes.map(box => box.group),
-                    true
-                );
-
-                if (intersects.length > 0) {
-                    const intersectedBoxGroup = intersects[0].object.parent;
-                    const intersectedBox = this.boxes.find(box => box.group === intersectedBoxGroup);
-
-                    if (intersectedBox) {
-                        this.scene.remove(intersectedBox.group); // Supprimer directement sans animation
-
-                        let moneyChange = 0;
-                        if (intersectedBox.isForbidden) {
-                            moneyChange = this.config.game.moneyPerPackage;
-                        } else {
-                            moneyChange = -this.config.game.moneyLostPerBadBox;
-                        }
-
-                        this.updateMoney(moneyChange);
-                        this.packagesHandled++;
-                        this.updateUI();
-
-                        // Supprimer la boîte du tableau
-                        const index = this.boxes.indexOf(intersectedBox);
-                        if (index > -1) {
-                            this.boxes.splice(index, 1);
-                        }
-
-                        if (this.packagesHandled >= this.config.game.packagesPerDay && this.boxes.length === 0) {
-                            this.nextDay();
-                        }
-                    }
-                }
-            }
-
-            updateMoney(amount) {
-                this.money += amount;
-                this.updateUI();
-                this.showMoneyChange(amount);
-            }
-
-            // Suppression de la méthode animateBoxDestruction avec animation
-            // Remplacer par une suppression immédiate dans tryDestroyBox et updateBoxes
-
-            spawnBox() {
-                if (this.packagesGenerated >= this.config.game.packagesPerDay) {
-                    return;
-                }
-
-                const effectiveConveyorSpeed = this.config.conveyorBelt.baseSpeed * this.config.speedFactor;
-                const isForbiddenBox = Math.random() < this.config.game.forbiddenBoxProbability;
-
-                const box = new Box(
-                    this.config.boxGenerator.position,
-                    this.config.box.dimensions,
-                    this.config.box.wallThickness,
-                    this.scene,
-                    effectiveConveyorSpeed,
-                    this.config.forbiddenObjects,
-                    isForbiddenBox,
-                    this.objectPool
-                );
-
-                this.boxes.push(box);
-                this.packagesGenerated++;
-            }
-
-            updateBoxes(delta) {
-                const destroyPositionX = this.config.boxDestroyer.position.x + 0.2;
-
-                for (let i = this.boxes.length - 1; i >= 0; i--) {
-                    const box = this.boxes[i];
-                    box.update(delta);
-
-                    if (box.isOutOfBounds(destroyPositionX)) {
-                        this.scene.remove(box.group); // Supprimer directement sans animation
-
-                        let moneyChange = 0;
-                        if (box.isForbidden) {
-                            moneyChange = -this.config.game.moneyLostPerBadBox;
-                        } else {
-                            moneyChange = this.config.game.moneyPerPackage;
-                        }
-                        this.updateMoney(moneyChange);
-                        this.packagesHandled++;
-                        this.updateUI();
-
-                        this.boxes.splice(i, 1);
-
-                        if (this.packagesHandled >= this.config.game.packagesPerDay && this.boxes.length === 0) {
-                            this.nextDay();
-                        }
-                    }
-                }
-            }
-
-            updatePlayer(delta) {
-                if (!this.controls.isLocked) return;
-
-                // Appliquer la friction
-                this.velocityPlayer.x -= this.velocityPlayer.x * 10.0 * delta;
-                this.velocityPlayer.z -= this.velocityPlayer.z * 10.0 * delta;
-
-                // Déterminer la direction
-                this.direction.z = Number(this.move.forward) - Number(this.move.backward);
-                this.direction.x = Number(this.move.right) - Number(this.move.left);
-                this.direction.normalize();
-
-                // Accélérer le joueur en fonction des touches pressées
-                if (this.move.forward || this.move.backward) this.velocityPlayer.z -= this.direction.z * 25.0 * delta;
-                if (this.move.left || this.move.right) this.velocityPlayer.x -= this.direction.x * 25.0 * delta;
-
-                // Déplacer le joueur
-                this.controls.moveRight(-this.velocityPlayer.x * delta);
-                this.controls.moveForward(-this.velocityPlayer.z * delta);
-            }
-
-            updateUI() {
-                document.getElementById('money').innerText = this.money;
-                document.getElementById('day').innerText = this.day;
-                document.getElementById('boxesHandled').innerText = this.packagesHandled;
-                document.getElementById('boxesTotal').innerText = this.config.game.packagesPerDay;
-            }
-
-            updatePackagesPerDay() {
-                this.config.game.packagesPerDay = this.day * 10;
-                this.packagesGenerated = 0;
-            }
-
-            nextDay() {
-                this.day++;
-                this.packagesHandled = 0;
-                this.boxes = [];
-
-                this.increaseGameDifficulty();
-
-                this.updatePackagesPerDay();
-                this.updateUI();
-                this.updateForbiddenObjects();
-                this.updateForbiddenPanel();
-                this.showDayTransition();
-            }
-
-            increaseGameDifficulty() {
-                this.config.speedFactor *= 1.1;
-                this.config.game.moneyPerPackage += 5;
-                this.config.game.moneyLostPerBadBox += 10;
-            }
-
-            showDayTransition() {
-                const dayTransition = document.getElementById('dayTransition');
-                dayTransition.innerText = `Jour ${this.day}`;
-                dayTransition.style.display = 'flex';
-                dayTransition.style.opacity = '0';
-
-                // Animation d'apparition
-                new TWEEN.Tween({ opacity: 0 })
-                    .to({ opacity: 1 }, 1000)
-                    .onUpdate(function (object) {
-                        dayTransition.style.opacity = object.opacity;
-                    })
-                    .easing(TWEEN.Easing.Quadratic.Out)
-                    .start()
-                    .onComplete(() => {
-                        // Maintenir l'affichage pendant 2 secondes
-                        setTimeout(() => {
-                            // Animation de disparition
-                            new TWEEN.Tween({ opacity: 1 })
-                                .to({ opacity: 0 }, 1000)
-                                .onUpdate(function (object) {
-                                    dayTransition.style.opacity = object.opacity;
-                                })
-                                .easing(TWEEN.Easing.Quadratic.In)
-                                .start()
-                                .onComplete(() => {
-                                    dayTransition.style.display = 'none';
-                                });
-                        }, 2000);
-                    });
-            }
-
-            showMoneyChange(amount) {
-                const moneyDisplay = document.getElementById('money');
-                const rect = moneyDisplay.getBoundingClientRect();
-
-                const moneyChange = document.createElement('div');
-                moneyChange.className = 'money-change';
-                moneyChange.style.left = `${window.innerWidth / 2}px`;
-                moneyChange.style.top = `${window.innerHeight / 2}px`;
-                moneyChange.style.color = amount > 0 ? 'green' : 'red';
-                moneyChange.innerText = `${amount > 0 ? '+' : '-'}${Math.abs(amount)}€`;
-                document.body.appendChild(moneyChange);
-
-                new TWEEN.Tween({ x: window.innerWidth / 2, y: window.innerHeight / 2, opacity: 1 })
-                    .to({ x: rect.left + rect.width / 2, y: rect.top - 30, opacity: 0 }, 1000)
-                    .onUpdate(function (object) {
-                        moneyChange.style.left = `${object.x}px`;
-                        moneyChange.style.top = `${object.y}px`;
-                        moneyChange.style.opacity = object.opacity;
-                    })
-                    .easing(TWEEN.Easing.Quadratic.Out)
-                    .start()
-                    .onComplete(() => {
-                        document.body.removeChild(moneyChange);
-                    });
-            }
-
-            animate() {
-                requestAnimationFrame(this.animate.bind(this));
-
-                const delta = this.clock.getDelta();
-
-                // Mise à jour des animations TWEEN
-                TWEEN.update();
-
-                // Génération des boîtes
-                const effectiveSpawnInterval = this.config.boxGenerator.baseSpawnInterval / this.config.speedFactor;
-
-                if (this.packagesGenerated < this.config.game.packagesPerDay) {
-                    this.boxGenerator.elapsedTime += delta * 1000;
-
-                    if (this.boxGenerator.elapsedTime > effectiveSpawnInterval) {
-                        this.spawnBox();
-                        this.boxGenerator.elapsedTime = 0;
-                    }
-                }
-
-                this.updateBoxes(delta);
-                this.updatePlayer(delta);
-                this.renderer.render(this.scene, this.camera);
-            }
         }
 
-        /**
-         * Classe représentant une boîte dans le jeu.
-         * Note : Même si nous remplaçons les boîtes par un plateau, cette classe est conservée pour la logique de gestion des objets.
-         */
-        class Box {
-            constructor(position, dimensions, wallThickness, scene, conveyorSpeed, forbiddenObjects, isForbiddenBox, objectPool) {
-                this.group = new THREE.Group();
-                this.dimensions = dimensions;
-                this.wallThickness = wallThickness;
-                this.velocity = new THREE.Vector3(conveyorSpeed, 0, 0);
-                this.forbiddenObjects = forbiddenObjects;
-                this.isForbiddenBox = isForbiddenBox;
-                this.isForbidden = false;
-                this.objectPool = objectPool;
+        // Classe des contrôles du joueur
+        class PlayerControls {
+            constructor(camera, domElement) {
+                this.camera = camera;
+                this.domElement = domElement;
+                this.controls = new THREE.PointerLockControls(this.camera, this.domElement);
+                this.velocity = new THREE.Vector3();
+                this.direction = new THREE.Vector3();
+                this.moveSpeed = 5;
+                this.controlsState = {
+                    moveForward: false,
+                    moveBackward: false,
+                    moveLeft: false,
+                    moveRight: false,
+                };
 
-                // Création des murs
-                this.createWalls();
+                this.instructions = document.getElementById('instructions');
 
-                // Positionnement initial
-                this.group.position.set(position.x, position.y + 0.25, position.z);
-                this.group.userData.velocity = this.velocity;
-
-                // Ajout à la scène
-                scene.add(this.group);
+                this.setupEventListeners();
             }
 
-            createWalls() {
-                const { width, height, depth } = this.dimensions;
-                const t = this.wallThickness;
-                const wallMaterial = new THREE.MeshPhongMaterial({ color: CONFIG.boxMaterials.wallColor });
-                const halfWidth = width / 2;
-                const halfDepth = depth / 2;
-                const halfHeight = height / 2;
+            setupEventListeners() {
+                if (this.instructions) {
+                    this.instructions.addEventListener('click', () => {
+                        this.controls.lock();
+                    });
 
-                const walls = [
-                    // Front
-                    {
-                        type: 'Box',
-                        options: {
-                            dimensions: { width: width + t * 2, height, depth: t },
-                            material: wallMaterial,
-                            position: { x: 0, y: 0, z: halfDepth + t / 2 }
-                        }
-                    },
-                    // Back
-                    {
-                        type: 'Box',
-                        options: {
-                            dimensions: { width: width + t * 2, height, depth: t },
-                            material: wallMaterial,
-                            position: { x: 0, y: 0, z: -halfDepth - t / 2 }
-                        }
-                    },
-                    // Left
-                    {
-                        type: 'Box',
-                        options: {
-                            dimensions: { width: t, height, depth: depth + t * 2 },
-                            material: wallMaterial,
-                            position: { x: -halfWidth - t / 2, y: 0, z: 0 }
-                        }
-                    },
-                    // Right
-                    {
-                        type: 'Box',
-                        options: {
-                            dimensions: { width: t, height, depth: depth + t * 2 },
-                            material: wallMaterial,
-                            position: { x: halfWidth + t / 2, y: 0, z: 0 }
-                        }
-                    },
-                    // Bottom
-                    {
-                        type: 'Box',
-                        options: {
-                            dimensions: { width: width + t * 2, height: t, depth: depth + t * 2 },
-                            material: new THREE.MeshPhongMaterial({ color: CONFIG.boxMaterials.bottomColor }),
-                            position: { x: 0, y: -halfHeight - t / 2, z: 0 }
-                        }
-                    }
-                ];
+                    this.controls.addEventListener('lock', () => {
+                        this.instructions.style.display = 'none';
+                    });
 
-                walls.forEach(wallConfig => {
-                    const wall = createObject(wallConfig.type, wallConfig.options);
-                    this.group.add(wall);
-                });
-            }
-
-            isObjectForbidden(poolObject) {
-                return this.forbiddenObjects.some(obj => obj.name === poolObject.name);
-            }
-
-            getNonForbiddenObjects() {
-                return this.objectPool.filter(obj => !this.isObjectForbidden(obj));
-            }
-
-            addObjects() {
-                const numObjects = THREE.MathUtils.randInt(1, 3);
-                let hasForbiddenObject = false;
-
-                const allowedObjects = this.objectPool.filter(obj => obj.category === 'allowed');
-                const forbiddenObjects = this.objectPool.filter(obj => obj.category === 'forbidden');
-
-                const positions = [
-                    { x: -0.25, y: -0.15, z: -0.35 }, // Haut gauche
-                    { x: 0.25, y: -0.15, z: -0.35 },  // Haut droite
-                    { x: -0.25, y: -0.15, z: 0 },     // Milieu gauche
-                    { x: 0.25, y: -0.15, z: 0 },      // Milieu droite
-                    { x: -0.25, y: -0.15, z: 0.35 },  // Bas gauche
-                    { x: 0.25, y: -0.15, z: 0.35 }    // Bas droite
-                ];
-
-                // Mélanger les positions pour les sélectionner aléatoirement
-                const shuffledPositions = positions.sort(() => Math.random() - 0.5);
-
-                for (let i = 0; i < numObjects; i++) {
-                    let poolObject;
-
-                    if (this.isForbiddenBox && !hasForbiddenObject && i === numObjects - 1) {
-                        // S'assurer qu'au moins un objet interdit est ajouté
-                        poolObject = getRandomElement(forbiddenObjects);
-                        hasForbiddenObject = true;
-                    } else {
-                        if (this.isForbiddenBox && Math.random() < 0.5) {
-                            poolObject = getRandomElement(forbiddenObjects);
-                            hasForbiddenObject = true;
-                        } else {
-                            poolObject = getRandomElement(allowedObjects);
-                        }
-                    }
-
-                    // Obtenir une position disponible
-                    const position = shuffledPositions.pop();
-                    if (!position) break; // Plus de positions disponibles
-
-                    // Cloner le modèle pour éviter les références partagées
-                    const modelClone = poolObject.gltf.scene.clone();
-
-                    // Positionnement relatif à la boîte
-                    modelClone.position.set(position.x, position.y, position.z);
-
-                    // Appliquer la taille et la rotation
-                    if (poolObject.size) {
-                        modelClone.scale.set(poolObject.size.x, poolObject.size.y, poolObject.size.z);
-                    } else {
-                        modelClone.scale.set(0.4, 0.4, 0.4); // Valeur par défaut
-                    }
-
-                    if (poolObject.rotation) {
-                        modelClone.rotation.set(poolObject.rotation.x, poolObject.rotation.y, poolObject.rotation.z);
-                    }
-
-                    // Marquer l'objet comme interdit si nécessaire
-                    modelClone.userData.isForbidden = poolObject.category === 'forbidden';
-
-                    this.group.add(modelClone);
+                    this.controls.addEventListener('unlock', () => {
+                        this.instructions.style.display = 'block';
+                    });
                 }
 
-                this.isForbidden = hasForbiddenObject;
+                document.addEventListener('keydown', this.handleKeyDown.bind(this));
+                document.addEventListener('keyup', this.handleKeyUp.bind(this));
+            }
+
+            handleKeyDown(event) {
+                switch (event.code) {
+                    case 'KeyZ':
+                        this.controlsState.moveForward = true;
+                        break;
+                    case 'KeyS':
+                        this.controlsState.moveBackward = true;
+                        break;
+                    case 'KeyQ':
+                        this.controlsState.moveLeft = true;
+                        break;
+                    case 'KeyD':
+                        this.controlsState.moveRight = true;
+                        break;
+                }
+            }
+
+            handleKeyUp(event) {
+                switch (event.code) {
+                    case 'KeyZ':
+                        this.controlsState.moveForward = false;
+                        break;
+                    case 'KeyS':
+                        this.controlsState.moveBackward = false;
+                        break;
+                    case 'KeyQ':
+                        this.controlsState.moveLeft = false;
+                        break;
+                    case 'KeyD':
+                        this.controlsState.moveRight = false;
+                        break;
+                }
             }
 
             update(delta) {
-                this.group.position.add(this.velocity.clone().multiplyScalar(delta));
-            }
+                if (this.controls.isLocked) {
+                    this.velocity.set(0, 0, 0);
+                    if (this.controlsState.moveForward) this.velocity.z -= this.moveSpeed * delta;
+                    if (this.controlsState.moveBackward) this.velocity.z += this.moveSpeed * delta;
+                    if (this.controlsState.moveLeft) this.velocity.x -= this.moveSpeed * delta;
+                    if (this.controlsState.moveRight) this.velocity.x += this.moveSpeed * delta;
 
-            isOutOfBounds(destroyPositionX) {
-                return this.group.position.x > destroyPositionX;
-            }
-
-            removeFromScene(scene) {
-                scene.remove(this.group);
+                    this.controls.moveRight(this.velocity.x);
+                    this.controls.moveForward(this.velocity.z);
+                }
             }
         }
 
-        /**
-         * Classe principale du jeu.
-         */
-        class Game {
-            constructor(config) {
-                this.config = config;
-                this.scene = null;
-                this.camera = null;
-                this.renderer = null;
-                this.controls = null;
-                this.boxes = [];
-                this.money = 0;
-                this.day = 1;
-                this.packagesHandled = 0;
-                this.packagesGenerated = 0;
-                this.boxGenerator = { ...config.boxGenerator, elapsedTime: 0 };
-                this.move = { forward: false, backward: false, left: false, right: false };
-                this.velocityPlayer = new THREE.Vector3();
-                this.direction = new THREE.Vector3();
-                this.forbiddenObjectsList = [];
-                this.clock = new THREE.Clock();
-                this.objectPool = []; // Liste des modèles chargés
-
-                this.init();
+        // Classe de gestion des ressources
+        class LoaderManager {
+            constructor() {
+                this.loaderGLTF = new THREE.GLTFLoader();
+                this.models = {};
+                this.objectsConfig = null;
+                this.loadedModelsJSON = {};
             }
 
-            async init() {
-                this.setupScene();
-                this.setupCamera();
-                this.setupRenderer();
-                this.setupLighting();
-                this.setupControls();
-                this.setupEventListeners();
-
-                // Charger les modèles depuis les listes définies directement dans le code
-                await this.setupObjectPool();
-
-                this.setupForbiddenObjects();
-                this.sceneMapper = new SceneMapper(this.scene, this.config.sceneMapping);
-                this.updatePackagesPerDay();
-                this.updateUI();
-                this.showDayTransition();
-                this.animate();
+            async loadAllResources() {
+                await Promise.all([
+                    this.loadModels(),
+                    this.loadObjectsConfig('configs/objectsConfig.json'),
+                ]);
+                await this.preloadModelsFromJSON();
             }
 
-            setupScene() {
-                this.scene = new THREE.Scene();
-                this.scene.background = new THREE.Color(this.config.scene.backgroundColor);
-            }
+            async loadModels() {
+                const modelPaths = {
+                    'allowed': 'models/allowed/burger.glb',
+                    'forbidden': 'models/forbidden/burger.glb',
+                    'plateau': 'models/plateau.glb',
+                    'poubelle': 'models/poubelle.glb',
+                    // Ajoutez d'autres modèles si nécessaire
+                };
 
-            setupCamera() {
-                const { fov, aspect, near, far, position } = this.config.camera;
-                this.camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
-                this.camera.position.set(position.x, position.y, position.z);
-            }
-
-            setupRenderer() {
-                const { antialias } = this.config.renderer;
-                this.renderer = new THREE.WebGLRenderer({ antialias });
-                this.renderer.setSize(window.innerWidth, window.innerHeight);
-                this.renderer.shadowMap.enabled = true; // Activer les ombres
-                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Type d'ombre
-                document.body.appendChild(this.renderer.domElement);
-            }
-
-            setupLighting() {
-                const { ambient } = this.config.lighting;
-
-                // Lumière ambiante
-                const ambientLight = new THREE.AmbientLight(ambient.color, 0.6); // Intensité augmentée
-                this.scene.add(ambientLight);
-
-                // Lumière directionnelle principale
-                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8); // Intensité augmentée
-                directionalLight.position.set(5, 10, 7.5);
-                directionalLight.castShadow = true;
-                directionalLight.shadow.camera.top = 10;
-                directionalLight.shadow.camera.bottom = -10;
-                directionalLight.shadow.camera.left = -10;
-                directionalLight.shadow.camera.right = 10;
-                directionalLight.shadow.mapSize.width = 1024;
-                directionalLight.shadow.mapSize.height = 1024;
-                this.scene.add(directionalLight);
-
-                // Lumière supplémentaire (par exemple, une lumière point)
-                const pointLight = new THREE.PointLight(0xffffff, 0.5);
-                pointLight.position.set(-5, 5, -5);
-                this.scene.add(pointLight);
-
-                // Optionnel : ajouter une lumière d'ambiance supplémentaire
-                const ambientLight2 = new THREE.AmbientLight(0x404040, 0.3);
-                this.scene.add(ambientLight2);
-            }
-
-            setupControls() {
-                this.controls = new THREE.PointerLockControls(this.camera, document.body);
-                const blocker = document.getElementById('blocker');
-
-                blocker.addEventListener('click', () => this.controls.lock(), false);
-
-                this.controls.addEventListener('lock', () => {
-                    blocker.style.display = 'none';
-                });
-
-                this.controls.addEventListener('unlock', () => {
-                    blocker.style.display = 'flex';
-                });
-
-                this.scene.add(this.controls.getObject());
-                this.controls.getObject().position.set(
-                    this.config.camera.position.x,
-                    this.config.player.height,
-                    this.config.camera.position.z
-                );
-            }
-
-            setupEventListeners() {
-                window.addEventListener('resize', this.onWindowResize.bind(this), false);
-                document.addEventListener('keydown', this.onKeyDown.bind(this), false);
-                document.addEventListener('keyup', this.onKeyUp.bind(this), false);
-                document.addEventListener('mousedown', this.onMouseDown.bind(this), false);
-            }
-
-            async setupObjectPool() {
-                // Définir directement les listes de modèles autorisés et interdits
-                const allowedModels = [
-                    { name: 'Burger', path: 'models/allowed/burger.glb', size: { x: 0.4, y: 0.4, z: 0.4 }, rotation: { x: 0, y: 0, z: 0 } },
-                    // Ajoutez d'autres modèles autorisés ici avec leurs propres tailles et rotations
-                ];
-
-                const forbiddenModels = [
-                    { name: 'Burger', path: 'models/forbidden/burger.glb', size: { x: 0.4, y: 0.4, z: 0.4 }, rotation: { x: 0, y: 0, z: 0 } },
-                    // Ajoutez d'autres modèles interdits ici avec leurs propres tailles et rotations
-                ];
-
-                // Ajouter le plateau GLB
-                const plateauModel = { name: 'Plateau', path: 'models/plateau.glb', category: 'allowed', size: { x: 1, y: 1, z: 1 }, rotation: { x: 0, y: 0, z: 0 } };
-                allowedModels.push(plateauModel);
-
-                // Construire objectPool en assignant la catégorie à chaque modèle
-                this.objectPool = [
-                    ...allowedModels.map(model => ({ ...model, category: 'allowed' })),
-                    ...forbiddenModels.map(model => ({ ...model, category: 'forbidden' }))
-                ];
-
-                // Précharger les modèles
-                await preloadModels(this.objectPool);
-            }
-
-            setupForbiddenObjects() {
-                this.forbiddenObjectsList = [];
-                this.updateForbiddenObjects();
-                this.updateForbiddenPanel();
-            }
-
-            updateForbiddenObjects() {
-                // Ajouter un nouvel objet interdit chaque jour
-                const forbiddenModels = this.objectPool.filter(obj => obj.category === 'forbidden');
-                const availableObjects = forbiddenModels.filter(obj =>
-                    !this.forbiddenObjectsList.some(forbidden => forbidden.name === obj.name)
-                );
-
-                if (availableObjects.length > 0) {
-                    const newForbidden = getRandomElement(availableObjects);
-                    this.forbiddenObjectsList.push(newForbidden);
-                    this.config.forbiddenObjects = [...this.forbiddenObjectsList];
-                }
-            }
-
-            updateForbiddenPanel() {
-                const forbiddenList = document.getElementById('forbiddenList');
-                forbiddenList.innerHTML = ''; // Réinitialiser la liste
-
-                this.config.forbiddenObjects.forEach(obj => {
-                    const item = document.createElement('div');
-                    item.classList.add('forbidden-item');
-
-                    const icon = document.createElement('div');
-                    icon.classList.add('forbidden-icon');
-                    icon.style.backgroundImage = `url('icons/${obj.name}.png')`;
-
-                    const label = document.createElement('span');
-                    label.innerText = obj.name;
-
-                    item.appendChild(icon);
-                    item.appendChild(label);
-                    forbiddenList.appendChild(item);
-                });
-            }
-
-            onWindowResize() {
-                this.camera.aspect = window.innerWidth / window.innerHeight;
-                this.camera.updateProjectionMatrix();
-                this.renderer.setSize(window.innerWidth, window.innerHeight);
-            }
-
-            onKeyDown(event) {
-                switch (event.code) {
-                    case 'KeyW':
-                    case 'ArrowUp':
-                        this.move.forward = true;
-                        break;
-                    case 'KeyS':
-                    case 'ArrowDown':
-                        this.move.backward = true;
-                        break;
-                    case 'KeyA':
-                    case 'ArrowLeft':
-                        this.move.left = true;
-                        break;
-                    case 'KeyD':
-                    case 'ArrowRight':
-                        this.move.right = true;
-                        break;
-                    case 'KeyE':
-                        this.tryDestroyBox();
-                        break;
-                }
-            }
-
-            onKeyUp(event) {
-                switch (event.code) {
-                    case 'KeyW':
-                    case 'ArrowUp':
-                        this.move.forward = false;
-                        break;
-                    case 'KeyS':
-                    case 'ArrowDown':
-                        this.move.backward = false;
-                        break;
-                    case 'KeyA':
-                    case 'ArrowLeft':
-                        this.move.left = false;
-                        break;
-                    case 'KeyD':
-                    case 'ArrowRight':
-                        this.move.right = false;
-                        break;
-                }
-            }
-
-            onMouseDown(event) {
-                if (!this.controls.isLocked) return;
-
-                const raycaster = new THREE.Raycaster();
-                const mouse = new THREE.Vector2();
-
-                // Pointeur au centre de l'écran
-                mouse.x = 0;
-                mouse.y = 0;
-
-                raycaster.setFromCamera(mouse, this.camera);
-
-                const intersects = raycaster.intersectObjects(
-                    this.boxes.map(box => box.group),
-                    true
-                );
-
-                if (intersects.length > 0) {
-                    const intersectedBoxGroup = intersects[0].object.parent;
-                    const intersectedBox = this.boxes.find(box => box.group === intersectedBoxGroup);
-
-                    if (intersectedBox) {
-                        const lid = intersectedBox.group.getObjectByName('lid');
-                        if (lid) {
-                            // Supprimer le couvercle sans animation
-                            intersectedBox.group.remove(lid);
-                        }
+                const promises = Object.keys(modelPaths).map(async key => {
+                    try {
+                        const gltf = await this.loaderGLTF.loadAsync(modelPaths[key]);
+                        this.models[key] = gltf.scene;
+                        console.log(`Modèle ${key} chargé.`);
+                    } catch (error) {
+                        console.error(`Erreur lors du chargement du modèle ${modelPaths[key]}:`, error);
                     }
-                }
+                });
+
+                await Promise.all(promises);
             }
 
-            tryDestroyBox() {
-                if (!this.controls.isLocked) return;
-
-                const raycaster = new THREE.Raycaster();
-                const mouse = new THREE.Vector2();
-
-                // Pointeur au centre de l'écran
-                mouse.x = 0;
-                mouse.y = 0;
-
-                raycaster.setFromCamera(mouse, this.camera);
-
-                const intersects = raycaster.intersectObjects(
-                    this.boxes.map(box => box.group),
-                    true
-                );
-
-                if (intersects.length > 0) {
-                    const intersectedBoxGroup = intersects[0].object.parent;
-                    const intersectedBox = this.boxes.find(box => box.group === intersectedBoxGroup);
-
-                    if (intersectedBox) {
-                        this.scene.remove(intersectedBox.group); // Supprimer directement sans animation
-
-                        let moneyChange = 0;
-                        if (intersectedBox.isForbidden) {
-                            moneyChange = this.config.game.moneyPerPackage;
-                        } else {
-                            moneyChange = -this.config.game.moneyLostPerBadBox;
-                        }
-
-                        this.updateMoney(moneyChange);
-                        this.packagesHandled++;
-                        this.updateUI();
-
-                        // Supprimer la boîte du tableau
-                        const index = this.boxes.indexOf(intersectedBox);
-                        if (index > -1) {
-                            this.boxes.splice(index, 1);
-                        }
-
-                        if (this.packagesHandled >= this.config.game.packagesPerDay && this.boxes.length === 0) {
-                            this.nextDay();
-                        }
+            async loadObjectsConfig(url) {
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error(`Erreur de chargement du JSON: ${response.statusText}`);
                     }
+                    this.objectsConfig = await response.json();
+                    console.log('Configuration des objets chargée:', this.objectsConfig);
+                } catch (error) {
+                    console.error(error);
+                    this.objectsConfig = null;
                 }
             }
 
-            updateMoney(amount) {
-                this.money += amount;
-                this.updateUI();
-                this.showMoneyChange(amount);
-            }
-
-            animateBoxDestruction(box) {
-                // Supprimer directement la boîte de la scène sans animation
-                this.scene.remove(box.group);
-
-                // Autres logiques liées à la destruction
-            }
-
-            spawnBox() {
-                if (this.packagesGenerated >= this.config.game.packagesPerDay) {
+            async preloadModelsFromJSON() {
+                if (!this.objectsConfig || !this.objectsConfig.objects.length) {
+                    console.warn('Aucune configuration d\'objets disponible pour le préchargement.');
                     return;
                 }
 
-                const effectiveConveyorSpeed = this.config.conveyorBelt.baseSpeed * this.config.speedFactor;
-                const isForbiddenBox = Math.random() < this.config.game.forbiddenBoxProbability;
-
-                const box = new Box(
-                    this.config.boxGenerator.position,
-                    this.config.box.dimensions,
-                    this.config.box.wallThickness,
-                    this.scene,
-                    effectiveConveyorSpeed,
-                    this.config.forbiddenObjects,
-                    isForbiddenBox,
-                    this.objectPool
-                );
-
-                this.boxes.push(box);
-                this.packagesGenerated++;
-            }
-
-            updateBoxes(delta) {
-                const destroyPositionX = this.config.boxDestroyer.position.x + 0.2;
-
-                for (let i = this.boxes.length - 1; i >= 0; i--) {
-                    const box = this.boxes[i];
-                    box.update(delta);
-
-                    if (box.isOutOfBounds(destroyPositionX)) {
-                        this.scene.remove(box.group); // Supprimer directement sans animation
-
-                        let moneyChange = 0;
-                        if (box.isForbidden) {
-                            moneyChange = -this.config.game.moneyLostPerBadBox;
-                        } else {
-                            moneyChange = this.config.game.moneyPerPackage;
-                        }
-                        this.updateMoney(moneyChange);
-                        this.packagesHandled++;
-                        this.updateUI();
-
-                        this.boxes.splice(i, 1);
-
-                        if (this.packagesHandled >= this.config.game.packagesPerDay && this.boxes.length === 0) {
-                            this.nextDay();
-                        }
+                const promises = this.objectsConfig.objects.map(async objConfig => {
+                    try {
+                        const gltf = await this.loaderGLTF.loadAsync(objConfig.model);
+                        this.loadedModelsJSON[objConfig.id] = gltf.scene;
+                        console.log(`Modèle ${objConfig.id} chargé.`);
+                    } catch (error) {
+                        console.error(`Erreur lors du chargement du modèle ${objConfig.model}:`, error);
                     }
-                }
-            }
+                });
 
-            updatePlayer(delta) {
-                if (!this.controls.isLocked) return;
-
-                // Appliquer la friction
-                this.velocityPlayer.x -= this.velocityPlayer.x * 10.0 * delta;
-                this.velocityPlayer.z -= this.velocityPlayer.z * 10.0 * delta;
-
-                // Déterminer la direction
-                this.direction.z = Number(this.move.forward) - Number(this.move.backward);
-                this.direction.x = Number(this.move.right) - Number(this.move.left);
-                this.direction.normalize();
-
-                // Accélérer le joueur en fonction des touches pressées
-                if (this.move.forward || this.move.backward) this.velocityPlayer.z -= this.direction.z * 25.0 * delta;
-                if (this.move.left || this.move.right) this.velocityPlayer.x -= this.direction.x * 25.0 * delta;
-
-                // Déplacer le joueur
-                this.controls.moveRight(-this.velocityPlayer.x * delta);
-                this.controls.moveForward(-this.velocityPlayer.z * delta);
-            }
-
-            updateUI() {
-                document.getElementById('money').innerText = this.money;
-                document.getElementById('day').innerText = this.day;
-                document.getElementById('boxesHandled').innerText = this.packagesHandled;
-                document.getElementById('boxesTotal').innerText = this.config.game.packagesPerDay;
-            }
-
-            updatePackagesPerDay() {
-                this.config.game.packagesPerDay = this.day * 10;
-                this.packagesGenerated = 0;
-            }
-
-            nextDay() {
-                this.day++;
-                this.packagesHandled = 0;
-                this.boxes = [];
-
-                this.increaseGameDifficulty();
-
-                this.updatePackagesPerDay();
-                this.updateUI();
-                this.updateForbiddenObjects();
-                this.updateForbiddenPanel();
-                this.showDayTransition();
-            }
-
-            increaseGameDifficulty() {
-                this.config.speedFactor *= 1.1;
-                this.config.game.moneyPerPackage += 5;
-                this.config.game.moneyLostPerBadBox += 10;
-            }
-
-            showDayTransition() {
-                const dayTransition = document.getElementById('dayTransition');
-                dayTransition.innerText = `Jour ${this.day}`;
-                dayTransition.style.display = 'flex';
-                dayTransition.style.opacity = '0';
-
-                // Animation d'apparition
-                new TWEEN.Tween({ opacity: 0 })
-                    .to({ opacity: 1 }, 1000)
-                    .onUpdate(function (object) {
-                        dayTransition.style.opacity = object.opacity;
-                    })
-                    .easing(TWEEN.Easing.Quadratic.Out)
-                    .start()
-                    .onComplete(() => {
-                        // Maintenir l'affichage pendant 2 secondes
-                        setTimeout(() => {
-                            // Animation de disparition
-                            new TWEEN.Tween({ opacity: 1 })
-                                .to({ opacity: 0 }, 1000)
-                                .onUpdate(function (object) {
-                                    dayTransition.style.opacity = object.opacity;
-                                })
-                                .easing(TWEEN.Easing.Quadratic.In)
-                                .start()
-                                .onComplete(() => {
-                                    dayTransition.style.display = 'none';
-                                });
-                        }, 2000);
-                    });
-            }
-
-            showMoneyChange(amount) {
-                const moneyDisplay = document.getElementById('money');
-                const rect = moneyDisplay.getBoundingClientRect();
-
-                const moneyChange = document.createElement('div');
-                moneyChange.className = 'money-change';
-                moneyChange.style.left = `${window.innerWidth / 2}px`;
-                moneyChange.style.top = `${window.innerHeight / 2}px`;
-                moneyChange.style.color = amount > 0 ? 'green' : 'red';
-                moneyChange.innerText = `${amount > 0 ? '+' : '-'}${Math.abs(amount)}€`;
-                document.body.appendChild(moneyChange);
-
-                new TWEEN.Tween({ x: window.innerWidth / 2, y: window.innerHeight / 2, opacity: 1 })
-                    .to({ x: rect.left + rect.width / 2, y: rect.top - 30, opacity: 0 }, 1000)
-                    .onUpdate(function (object) {
-                        moneyChange.style.left = `${object.x}px`;
-                        moneyChange.style.top = `${object.y}px`;
-                        moneyChange.style.opacity = object.opacity;
-                    })
-                    .easing(TWEEN.Easing.Quadratic.Out)
-                    .start()
-                    .onComplete(() => {
-                        document.body.removeChild(moneyChange);
-                    });
-            }
-
-            animate() {
-                requestAnimationFrame(this.animate.bind(this));
-
-                const delta = this.clock.getDelta();
-
-                // Mise à jour des animations TWEEN
-                TWEEN.update();
-
-                // Génération des boîtes
-                const effectiveSpawnInterval = this.config.boxGenerator.baseSpawnInterval / this.config.speedFactor;
-
-                if (this.packagesGenerated < this.config.game.packagesPerDay) {
-                    this.boxGenerator.elapsedTime += delta * 1000;
-
-                    if (this.boxGenerator.elapsedTime > effectiveSpawnInterval) {
-                        this.spawnBox();
-                        this.boxGenerator.elapsedTime = 0;
-                    }
-                }
-
-                this.updateBoxes(delta);
-                this.updatePlayer(delta);
-                this.renderer.render(this.scene, this.camera);
+                await Promise.all(promises);
             }
         }
 
-        // Démarrer le jeu lorsque la fenêtre est chargée
-        window.addEventListener('load', () => {
-            new Game(CONFIG);
+        // Classe pour les objets de la carte
+        class MapObject {
+            constructor(physicsWorld, scene, config, models) {
+                this.physicsWorld = physicsWorld;
+                this.scene = scene;
+                this.config = config;
+                this.models = models;
+
+                this.createObject();
+            }
+
+            createObject() {
+                let mesh;
+
+                if (this.config.model) {
+                    // Vérifie si le modèle est chargé
+                    if (this.models[this.config.model]) {
+                        // Utilise le modèle GLB
+                        mesh = this.models[this.config.model].clone();
+                    } else {
+                        console.warn(`Le modèle "${this.config.model}" n'est pas chargé.`);
+                        return; // Arrête la création de l'objet
+                    }
+                } else {
+                    // Crée une forme géométrique par défaut si aucun modèle n'est défini
+                    const geometry = new THREE.BoxGeometry(
+                        this.config.size?.x || 1,
+                        this.config.size?.y || 1,
+                        this.config.size?.z || 1
+                    );
+                    const material = new THREE.MeshStandardMaterial({ color: this.config.color || 0xffffff });
+                    mesh = new THREE.Mesh(geometry, material);
+                }
+
+                mesh.position.copy(this.config.position || new THREE.Vector3());
+                this.scene.add(mesh);
+
+                // Gestion du matériau
+                let material = null;
+                if (this.config.material) {
+                    material = getOrCreateMaterial(this.physicsWorld, this.config.material);
+                }
+
+                // Création du corps physique
+                const shape = new CANNON.Box(new CANNON.Vec3(
+                    (this.config.size?.x || 1) / 2,
+                    (this.config.size?.y || 1) / 2,
+                    (this.config.size?.z || 1) / 2
+                ));
+
+                const body = new CANNON.Body({
+                    mass: this.config.mass || 0,
+                    shape,
+                    position: new CANNON.Vec3(
+                        this.config.position?.x || 0,
+                        this.config.position?.y || 0,
+                        this.config.position?.z || 0
+                    ),
+                    material: material,
+                });
+
+                // Gestion des matériaux de contact
+                if (this.config.contactMaterials) {
+                    this.config.contactMaterials.forEach(contactMaterialConfig => {
+                        const materialA = material;
+                        const materialB = getOrCreateMaterial(this.physicsWorld, contactMaterialConfig.with);
+                        const contactMaterial = new CANNON.ContactMaterial(materialA, materialB, {
+                            friction: contactMaterialConfig.friction || 0,
+                            restitution: contactMaterialConfig.restitution || 0,
+                        });
+                        this.physicsWorld.addContactMaterial(contactMaterial);
+                    });
+                }
+
+                this.physicsWorld.addBody(body);
+                mesh.userData.body = body;
+                this.mesh = mesh;
+                this.body = body;
+            }
+
+            update() {
+                // Si l'objet est dynamique, mettre à jour sa position
+                if (this.body.mass > 0) {
+                    this.mesh.position.copy(this.body.position);
+                    this.mesh.quaternion.copy(this.body.quaternion);
+                }
+            }
+        }
+
+        // Classe du tapis roulant
+        class ConveyorBelt {
+            constructor(physicsWorld, scene, { size, position, velocity, material = new THREE.MeshStandardMaterial({ color: 0x555555 }) }) {
+                this.physicsWorld = physicsWorld;
+                this.scene = scene;
+                this.size = size;
+                this.velocity = velocity.clone();
+
+                // Gestion du matériau du tapis roulant
+                const conveyorMaterialConfig = {
+                    name: "conveyorMaterial",
+                    friction: 0,
+                    restitution: 0,
+                };
+                const conveyorMaterial = getOrCreateMaterial(this.physicsWorld, conveyorMaterialConfig);
+
+                // Création du mesh graphique
+                this.mesh = new THREE.Mesh(
+                    new THREE.BoxGeometry(this.size.x, this.size.y, this.size.z),
+                    material
+                );
+                this.mesh.position.copy(position);
+                this.scene.add(this.mesh);
+
+                // Création du corps physique avec le matériau
+                this.body = new CANNON.Body({
+                    mass: 0,
+                    shape: new CANNON.Box(new CANNON.Vec3(this.size.x / 2, this.size.y / 2, this.size.z / 2)),
+                    position: new CANNON.Vec3(position.x, position.y, position.z),
+                    material: conveyorMaterial,
+                });
+                this.physicsWorld.addBody(this.body);
+
+                // Configurer le matériau de contact entre le tapis roulant et les plateaux
+                const plateauMaterial = getOrCreateMaterial(this.physicsWorld, { name: "plateauMaterial" });
+                const contactMaterial = new CANNON.ContactMaterial(conveyorMaterial, plateauMaterial, {
+                    friction: 0, // Sans friction
+                    restitution: 0,
+                });
+                this.physicsWorld.addContactMaterial(contactMaterial);
+            }
+
+            setVelocity(newVelocity) {
+                this.velocity.copy(newVelocity);
+            }
+
+            applyEffect() {
+                this.physicsWorld.bodies.forEach(body => {
+                    if (body.mass > 0) {
+                        // Vérifier si le body est en contact avec le tapis roulant
+                        const contactPairs = this.physicsWorld.contacts.filter(contact => {
+                            return (contact.bi === this.body || contact.bj === this.body) &&
+                                (contact.bi === body || contact.bj === body);
+                        });
+
+                        if (contactPairs.length > 0) {
+                            // Appliquer une force pour simuler le mouvement du tapis roulant
+                            const force = new CANNON.Vec3(
+                                this.velocity.x * body.mass * 10,
+                                this.velocity.y * body.mass * 10,
+                                this.velocity.z * body.mass * 10
+                            );
+                            body.applyForce(force, body.position);
+                        }
+                    }
+                });
+            }
+        }
+
+
+        // Classe pour les objets interactifs (plateaux)
+        class InteractiveObject {
+            constructor(physicsWorld, scene, model, position, objectsConfig, loadedModelsJSON) {
+                this.physicsWorld = physicsWorld;
+                this.scene = scene;
+                this.mesh = model.clone();
+                this.mesh.position.copy(position);
+                this.scene.add(this.mesh);
+
+                // Indiquer que c'est un plateau
+                this.mesh.userData.isPlateau = true;
+
+                // Création du corps physique
+                const bbox = new THREE.Box3().setFromObject(this.mesh);
+                const size = new THREE.Vector3();
+                bbox.getSize(size);
+                const shape = new CANNON.Box(new CANNON.Vec3(size.x / 2, size.y / 2, size.z / 2));
+
+                // Gestion du matériau du plateau
+                const plateauMaterialConfig = {
+                    name: "plateauMaterial",
+                    friction: 0, // Sans friction avec le tapis roulant
+                    restitution: 0,
+                };
+                const plateauMaterial = getOrCreateMaterial(this.physicsWorld, plateauMaterialConfig);
+
+                this.body = new CANNON.Body({
+                    mass: 1,
+                    shape,
+                    position: new CANNON.Vec3(position.x, position.y, position.z),
+                    linearDamping: 0.1,
+                    angularDamping: 0.9, // Désactiver la rotation
+                    material: plateauMaterial,
+                });
+
+                this.physicsWorld.addBody(this.body);
+                this.mesh.userData.body = this.body;
+                this.mesh.userData.interactive = true; // Ajouté pour le grab
+
+                // Marquer si l'objet est interdit
+                this.mesh.userData.hasForbidden = false;
+
+                // Ajouter des objets sur le plateau
+                this.addObjectsToPlateau(objectsConfig, loadedModelsJSON);
+            }
+
+            addObjectsToPlateau(objectsConfig, loadedModelsJSON) {
+                if (!objectsConfig || !objectsConfig.objects.length) {
+                    console.warn('Aucune configuration d\'objets disponible.');
+                    return;
+                }
+
+                const basePositions = [
+                    new THREE.Vector3(0.3, 0.1, 0.2),
+                    new THREE.Vector3(0, 0.1, 0.2),
+                    new THREE.Vector3(-0.3, 0.1, 0.2),
+                    new THREE.Vector3(0.3, 0.1, -0.2),
+                    new THREE.Vector3(0, 0.1, -0.2),
+                    new THREE.Vector3(-0.3, 0.1, -0.2),
+                ];
+
+                const selectedObjects = objectsConfig.objects.sort(() => Math.random() - 0.5).slice(0, 6);
+
+                selectedObjects.forEach((objConfig, index) => {
+                    const preloadedModel = loadedModelsJSON[objConfig.id];
+                    if (!preloadedModel) {
+                        console.warn(`Modèle préchargé manquant pour l'objet ID: ${objConfig.id}`);
+                        return;
+                    }
+
+                    const clonedModel = preloadedModel.clone();
+
+                    const positionOffset = new THREE.Vector3(
+                        objConfig.position?.x || 0,
+                        objConfig.position?.y || 0,
+                        objConfig.position?.z || 0
+                    );
+
+                    const finalPosition = basePositions[index].clone().add(positionOffset);
+                    clonedModel.position.copy(finalPosition);
+
+                    clonedModel.rotation.set(
+                        THREE.MathUtils.degToRad(objConfig.rotation?.x || 0),
+                        THREE.MathUtils.degToRad(objConfig.rotation?.y || 0),
+                        THREE.MathUtils.degToRad(objConfig.rotation?.z || 0)
+                    );
+
+                    clonedModel.scale.set(
+                        objConfig.scale?.x || 1,
+                        objConfig.scale?.y || 1,
+                        objConfig.scale?.z || 1
+                    );
+
+                    this.mesh.add(clonedModel);
+
+                    // Marquer l'objet comme interdit si nécessaire
+                    if (objConfig.model.includes('forbidden')) {
+                        this.mesh.userData.hasForbidden = true;
+                        clonedModel.traverse(child => {
+                            if (child.isMesh) {
+                                child.parent.userData.hasForbidden = true;
+                            }
+                        });
+                    }
+                });
+            }
+
+            update() {
+                this.mesh.position.copy(this.body.position);
+                this.mesh.quaternion.copy(this.body.quaternion);
+            }
+        }
+
+        // Classe de la poubelle
+        class GarbageBin {
+            constructor(physicsWorld, scene, model, scoreSystem) {
+                this.physicsWorld = physicsWorld;
+                this.scene = scene;
+                this.scoreSystem = scoreSystem;
+                this.mesh = model.clone();
+                this.mesh.position.set(0, 1, 10);
+                this.scene.add(this.mesh);
+
+                const bbox = new THREE.Box3().setFromObject(this.mesh);
+                const size = new THREE.Vector3();
+                bbox.getSize(size);
+                const shape = new CANNON.Box(new CANNON.Vec3(size.x / 2, size.y / 2, size.z / 2));
+
+                // Création du matériau de la poubelle
+                const garbageMaterialConfig = {
+                    name: "garbageMaterial",
+                    friction: 0.5,
+                    restitution: 0.3,
+                };
+                const garbageMaterial = getOrCreateMaterial(this.physicsWorld, garbageMaterialConfig);
+
+                this.body = new CANNON.Body({
+                    mass: 0,
+                    shape,
+                    position: new CANNON.Vec3(0, 1, 10),
+                    material: garbageMaterial,
+                });
+                this.physicsWorld.addBody(this.body);
+
+                // Écouteur d'événement de collision
+                this.body.addEventListener('collide', this.handleCollision.bind(this));
+            }
+
+            handleCollision(event) {
+                const collidedBody = event.body;
+
+                // Vérifiez si le corps collisionné est un plateau
+                if (collidedBody && collidedBody.mesh && collidedBody.mesh.userData.isPlateau) {
+                    // Supprimer l'objet de la scène et du monde physique
+                    this.scene.remove(collidedBody.mesh);
+                    this.physicsWorld.removeBody(collidedBody);
+
+                    // Mettre à jour le score
+                    this.scoreSystem.addPoints(10);
+                    console.log('Plateau jeté dans la poubelle ! Score +10.');
+                }
+            }
+        }
+
+        // Initialisation de la scène
+        const gameScene = new GameScene();
+
+        // Gestion du score
+        const scoreSystem = new ScoreSystem('score');
+
+        // Gestion des ressources
+        const loaderManager = new LoaderManager();
+
+        // Variables pour le grab
+        let grabbedBody = null;
+        let grabConstraint = null;
+        let grabHoldBody = null; // Corps fixe représentant le point de grab
+
+        // Liste des objets interactifs
+        const interactiveObjects = [];
+        const interactiveMeshes = []; // Ajouté pour le grab
+        const interactiveBodies = []; // Ajouté pour le grab
+
+        // Fonction pour attraper un objet
+        function grabObject(body) {
+            if (grabConstraint) {
+                releaseObject(); // Libérer tout objet déjà attrapé
+            }
+
+            grabbedBody = body;
+
+            // Définir le point de maintien devant la caméra
+            const cameraDirection = new THREE.Vector3();
+            gameScene.camera.getWorldDirection(cameraDirection);
+            const holdPoint = new CANNON.Vec3(
+                gameScene.camera.position.x + cameraDirection.x * 1.5,
+                gameScene.camera.position.y + cameraDirection.y * 1.5,
+                gameScene.camera.position.z + cameraDirection.z * 1.5
+            );
+
+            // Création d'un corps fixe pour représenter le point de maintien
+            grabHoldBody = new CANNON.Body({
+                mass: 0, // Corps statique
+                position: holdPoint,
+                shape: new CANNON.Sphere(0.1), // Corps point avec un petit rayon
+            });
+            gameScene.physicsWorld.addBody(grabHoldBody);
+
+            // Création de la contrainte entre l'objet attrapé et le point de maintien
+            grabConstraint = new CANNON.PointToPointConstraint(
+                grabbedBody,
+                new CANNON.Vec3(0, 0, 0), // Pivot local sur l'objet attrapé
+                grabHoldBody,
+                new CANNON.Vec3(0, 0, 0), // Pivot local sur le point de maintien
+                {
+                    maxForce: 1000,
+                }
+            );
+            gameScene.physicsWorld.addConstraint(grabConstraint);
+
+            // Bloquer la rotation de l’objet en fixant sa vitesse angulaire à zéro
+            grabbedBody.angularVelocity.set(0, 0, 0);
+            grabbedBody.angularDamping = 1; // Réduire les rotations
+        }
+
+        // Fonction pour relâcher un objet
+        function releaseObject() {
+            if (grabConstraint) {
+                gameScene.physicsWorld.removeConstraint(grabConstraint);
+                grabConstraint = null;
+            }
+            if (grabHoldBody) {
+                gameScene.physicsWorld.removeBody(grabHoldBody);
+                grabHoldBody = null;
+            }
+
+            // Rétablir l'amortissement angulaire à la valeur par défaut
+            if (grabbedBody) {
+                grabbedBody.angularDamping = 0.1; // Ou la valeur par défaut utilisée dans votre jeu
+            }
+
+            grabbedBody = null;
+        }
+
+        // Mettre à jour la position du point de maintien
+        function updateGrabHoldPosition() {
+            if (grabHoldBody) {
+                const cameraDirection = new THREE.Vector3();
+                gameScene.camera.getWorldDirection(cameraDirection);
+                const newHoldPoint = new CANNON.Vec3(
+                    gameScene.camera.position.x + cameraDirection.x * 1.5,
+                    gameScene.camera.position.y + cameraDirection.y * 1.5,
+                    gameScene.camera.position.z + cameraDirection.z * 1.5
+                );
+                grabHoldBody.position.copy(newHoldPoint);
+            }
+        }
+
+        // Événements de la souris
+        window.addEventListener('mousedown', () => {
+            if (grabbedBody) return; // Ne rien faire si un objet est déjà attrapé
+
+            const raycaster = new THREE.Raycaster();
+            const center = new THREE.Vector2(0, 0); // Centre de l'écran
+            raycaster.setFromCamera(center, gameScene.camera);
+
+            // Intersections avec les objets interactifs
+            const intersects = raycaster.intersectObjects(interactiveMeshes, true); // Inclure les descendants
+
+            if (intersects.length > 0) {
+                const intersectedMesh = intersects[0].object;
+                let bodyToGrab = null;
+
+                // Trouver le mesh parent s'il existe
+                let parentMesh = intersectedMesh;
+                while (parentMesh && !interactiveMeshes.includes(parentMesh)) {
+                    parentMesh = parentMesh.parent;
+                }
+
+                if (parentMesh) {
+                    const index = interactiveMeshes.indexOf(parentMesh);
+                    bodyToGrab = interactiveBodies[index];
+                }
+
+                if (bodyToGrab) {
+                    grabObject(bodyToGrab);
+                }
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            releaseObject();
+        });
+
+        // Chargement des ressources
+        loaderManager.loadAllResources().then(() => {
+            // Création des contrôles du joueur
+            const playerControls = new PlayerControls(gameScene.camera, gameScene.renderer.domElement);
+
+            // Création du tapis roulant
+            const conveyorBelt = new ConveyorBelt(gameScene.physicsWorld, gameScene.scene, {
+                size: { x: 20, y: 0.1, z: 3 },
+                position: new THREE.Vector3(0, 0.05, -5),
+                velocity: new CANNON.Vec3(0.01, 0, 0), // Vitesse initiale
+            });
+
+            // Vous pouvez changer la vitesse du tapis roulant
+            // conveyorBelt.setVelocity(new CANNON.Vec3(10, 0, 0));
+
+            // Création de la poubelle
+            const garbageBin = new GarbageBin(gameScene.physicsWorld, gameScene.scene, loaderManager.models['poubelle'], scoreSystem);
+
+            // Génération des objets de la carte à partir de la configuration
+            const mapObjectsConfig = [
+                {
+                    size: { x: 1, y: 1, z: 1 },
+                    position: new THREE.Vector3(10, 0.5, -5),
+                    color: 0x00ff00,
+                    mass: 0,
+                    material: {
+                        name: "groundMaterial",
+                        friction: 0.4,
+                        restitution: 0.3,
+                    },
+                    contactMaterials: [
+                        {
+                            with: {
+                                name: "plateauMaterial",
+                            },
+                            friction: 0, // Sans friction avec les plateaux
+                            restitution: 0.2,
+                        },
+                    ],
+                },
+                // Ajoutez d'autres objets ici
+            ];
+
+            mapObjectsConfig.forEach(config => {
+                const mapObject = new MapObject(gameScene.physicsWorld, gameScene.scene, config, loaderManager.models);
+            });
+
+            // Génération périodique des plateaux
+            setInterval(() => {
+                const interactiveObject = new InteractiveObject(
+                    gameScene.physicsWorld,
+                    gameScene.scene,
+                    loaderManager.models['plateau'],
+                    new THREE.Vector3(-9, 1, -5),
+                    loaderManager.objectsConfig,
+                    loaderManager.loadedModelsJSON
+                );
+                interactiveObjects.push(interactiveObject);
+                interactiveMeshes.push(interactiveObject.mesh); // Ajouté pour le grab
+                interactiveBodies.push(interactiveObject.body); // Ajouté pour le grab
+            }, 5000);
+
+            // Boucle d'animation
+            const clock = new THREE.Clock();
+            function animate() {
+                requestAnimationFrame(animate);
+                const delta = clock.getDelta();
+
+                // Mise à jour des contrôles
+                playerControls.update(delta);
+
+                // Mise à jour de la physique
+                gameScene.physicsWorld.step(1 / 60, delta);
+
+                // Mise à jour des objets interactifs
+                interactiveObjects.forEach(obj => obj.update());
+
+                // Appliquer l'effet du tapis roulant
+                conveyorBelt.applyEffect();
+
+                // Mise à jour de la position de l'objet attrapé
+                updateGrabHoldPosition(); // Ajouté
+
+                // Rendu de la scène
+                gameScene.renderer.render(gameScene.scene, gameScene.camera);
+            }
+
+            animate();
         });
     </script>
 </body>
+
 </html>

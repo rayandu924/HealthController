@@ -1,0 +1,35 @@
+body {
+    margin: 0;
+    overflow: hidden;
+    background-color: #000;
+}
+
+#instructions {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    max-width: 300px;
+    text-align: center;
+    color: #ffffff;
+    font-family: Arial, sans-serif;
+    user-select: none;
+    cursor: pointer;
+    font-size: 24px;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 20px;
+    border-radius: 10px;
+}
+
+#score {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    color: #ffffff;
+    font-family: Arial, sans-serif;
+    font-size: 24px;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 10px 20px;
+    border-radius: 5px;
+}
