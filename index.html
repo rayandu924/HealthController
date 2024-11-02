@@ -3,885 +3,959 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Jeu Three.js avec Physique et Gameplay</title>
+    <title>Jeu 3D avec Three.js et Cannon.js</title>
     <style>
-        /* Styles de base pour le corps et les instructions */
         body {
             margin: 0;
             overflow: hidden;
-            background-color: #000;
+        }
+
+        canvas {
+            display: block;
         }
 
         #instructions {
             position: absolute;
             top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
             width: 100%;
-            max-width: 300px;
             text-align: center;
-            color: #ffffff;
+            color: white;
             font-family: Arial, sans-serif;
             user-select: none;
             cursor: pointer;
-            font-size: 24px;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 20px;
-            border-radius: 10px;
+            z-index: 1000;
         }
 
-        /* Style pour l'affichage du score */
-        #score {
+        /* Style du crosshair */
+        #crosshair {
             position: absolute;
-            top: 20px;
-            left: 20px;
-            color: #ffffff;
-            font-family: Arial, sans-serif;
-            font-size: 24px;
-            background: rgba(0, 0, 0, 0.5);
-            padding: 10px 20px;
-            border-radius: 5px;
+            top: 50%;
+            left: 50%;
+            width: 10px;
+            height: 10px;
+            margin-left: -5px;
+            /* Pour centrer horizontalement */
+            margin-top: -5px;
+            /* Pour centrer verticalement */
+            background-color: white;
+            border: 2px solid black;
+            border-radius: 50%;
+            pointer-events: none;
+            /* Permet de cliquer à travers le crosshair */
+            z-index: 1000;
         }
     </style>
 </head>
 
 <body>
-    <!-- Instructions pour activer les contrôles -->
-    <div id="instructions">Cliquez pour jouer</div>
-    <!-- Affichage du score -->
-    <div id="score">Score: 0</div>
-    <!-- Charger les scripts principaux -->
-
-    <!-- Charger Three.js -->
+    <div id="instructions">Cliquez pour démarrer</div>
+    <div id="crosshair"></div> <!-- Ajout du crosshair -->
+    <div id="unhealthyCount" style="position: absolute; top: 10px; left: 10px; color: white; font-family: Arial, sans-serif; z-index: 1000;">Unhealthy Count: 0</div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-
-    <!-- Charger Cannon.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
-
-    <!-- Charger GLTFLoader -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-
-    <!-- Charger PointerLockControls -->
-    <script src="https://unpkg.com/three@0.128.0/examples/js/controls/PointerLockControls.js"></script>
-
+    <script src="https://cdn.jsdelivr.net/npm/cannon@0.6.2/build/cannon.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three/examples/js/loaders/GLTFLoader.js"></script>
     <script>
-        // Votre code JavaScript ici
+        // Pour pas oublier, il faut que je crée un générateur de plateau et. Et ensuite ? Ensuite Une classe générateur de plateau on. Ensuite, il faut que je fasse en sorte que les choses qui peuvent être upgradeable sont la distance pour attraper un objet et aussi. Il faut savoir que en fait, les plateaux auront un indice de mauvaise bouffe et plus on avance Plus les plateaux auront condense à être dans la mauvaise bouffe et avoir un indice élevé de mauvaise bouffe. Et du coup, le joueur devra essayer de de vu qu'il pourra pas attraper tous les plateaux, il devra attraper les plateaux qu'ils ont le plus gros indice de mauvaise bouffe. Ensuite  La vitesse de déplacement sera aussi un élément qui sera upgradable
+        // Définir les groupes de collision
+        const COLLISION_GROUP_PLAYER = 1 << 0; // 1
+        const COLLISION_GROUP_OBJECT = 1 << 1; // 2
 
-        /**
-         * Fonction utilitaire pour gérer les matériaux dans le monde physique.
-         * Évite la duplication des matériaux en les stockant dans physicsWorld.materials.
-         */
-        function getOrCreateMaterial(physicsWorld, materialConfig) {
-            if (!physicsWorld.materials) {
-                physicsWorld.materials = {};
-            }
-
-            let material = physicsWorld.materials[materialConfig.name];
-            if (!material) {
-                material = new CANNON.Material(materialConfig.name);
-                if (materialConfig.friction !== undefined) {
-                    material.friction = materialConfig.friction;
-                }
-                if (materialConfig.restitution !== undefined) {
-                    material.restitution = materialConfig.restitution;
-                }
-                physicsWorld.materials[materialConfig.name] = material;
-            }
-            return material;
-        }
-
-        // Classe de gestion du score
-        class ScoreSystem {
-            constructor(elementId) {
-                this.score = 0;
-                this.scoreElement = document.getElementById(elementId);
-            }
-
-            addPoints(points) {
-                this.score += points;
-                this.updateDisplay();
-            }
-
-            updateDisplay() {
-                this.scoreElement.textContent = `Score: ${Math.floor(this.score)}`;
-            }
-        }
-
-        // Classe de gestion de la scène
-        class GameScene {
+        // Gestionnaire des événements
+        class EventEmitter {
             constructor() {
-                // Création de la scène
+                this.events = {};
+            }
+
+            on(event, listener) {
+                if (!this.events[event]) {
+                    this.events[event] = [];
+                }
+                this.events[event].push(listener);
+            }
+
+            emit(event, data) {
+                if (this.events[event]) {
+                    this.events[event].forEach(listener => listener(data));
+                }
+            }
+        }
+
+        // Gestionnaire de la scène Three.js
+        class SceneManager {
+            constructor() {
                 this.scene = new THREE.Scene();
+                // Ajout d'une lumière directionnelle pour mieux voir les objets
+                const light = new THREE.DirectionalLight(0xffffff, 1);
+                light.position.set(5, 10, 7.5);
+                this.scene.add(light);
 
-                // Configuration de la caméra
-                this.camera = new THREE.PerspectiveCamera(
-                    75,
-                    window.innerWidth / window.innerHeight,
-                    0.1,
-                    1000
-                );
-                this.camera.position.set(0, 1.6, 5);
+                // Ajout d'une lumière ambiante
+                const ambientLight = new THREE.AmbientLight(0x404040); // lumière douce
+                this.scene.add(ambientLight);
 
-                // Configuration du rendu
                 this.renderer = new THREE.WebGLRenderer({ antialias: true });
                 this.renderer.setSize(window.innerWidth, window.innerHeight);
                 document.body.appendChild(this.renderer.domElement);
-
-                // Ajout d'une lumière directionnelle
-                const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-                directionalLight.position.set(5, 10, 7.5);
-                this.scene.add(directionalLight);
-
-                // Création du monde physique
-                this.physicsWorld = new CANNON.World();
-                this.physicsWorld.gravity.set(0, -9.82, 0);
-                this.physicsWorld.solver.iterations = 20;
-                this.physicsWorld.broadphase = new CANNON.NaiveBroadphase();
-
-                // Gestion du redimensionnement
-                window.addEventListener('resize', this.onWindowResize.bind(this));
-
-                // Création du sol
-                this.createGround();
             }
 
-            createGround() {
-                // Création du matériau du sol
-                const groundMaterialConfig = {
-                    name: "groundMaterial",
-                    friction: 0.5,
-                    restitution: 0.3,
-                };
-                const groundMaterial = getOrCreateMaterial(this.physicsWorld, groundMaterialConfig);
-
-                // Création du sol physique
-                const groundBody = new CANNON.Body({
-                    mass: 0,
-                    shape: new CANNON.Plane(),
-                    material: groundMaterial,
-                });
-                groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
-                this.physicsWorld.addBody(groundBody);
-
-                // Création du sol graphique
-                const groundMesh = new THREE.Mesh(
-                    new THREE.PlaneGeometry(100, 100),
-                    new THREE.MeshStandardMaterial({ color: 0x808080 })
-                );
-                groundMesh.rotation.x = -Math.PI / 2;
-                this.scene.add(groundMesh);
-            }
-
-            onWindowResize() {
-                this.camera.aspect = window.innerWidth / window.innerHeight;
-                this.camera.updateProjectionMatrix();
-                this.renderer.setSize(window.innerWidth, window.innerHeight);
+            render(camera) {
+                this.renderer.render(this.scene, camera);
             }
         }
 
-        // Classe des contrôles du joueur
-        class PlayerControls {
-            constructor(camera, domElement) {
-                this.camera = camera;
-                this.domElement = domElement;
-                this.controls = new THREE.PointerLockControls(this.camera, this.domElement);
-                this.velocity = new THREE.Vector3();
-                this.direction = new THREE.Vector3();
-                this.moveSpeed = 5;
-                this.controlsState = {
-                    moveForward: false,
-                    moveBackward: false,
-                    moveLeft: false,
-                    moveRight: false,
-                };
-
-                this.instructions = document.getElementById('instructions');
-
-                this.setupEventListeners();
-            }
-
-            setupEventListeners() {
-                if (this.instructions) {
-                    this.instructions.addEventListener('click', () => {
-                        this.controls.lock();
-                    });
-
-                    this.controls.addEventListener('lock', () => {
-                        this.instructions.style.display = 'none';
-                    });
-
-                    this.controls.addEventListener('unlock', () => {
-                        this.instructions.style.display = 'block';
-                    });
-                }
-
-                document.addEventListener('keydown', this.handleKeyDown.bind(this));
-                document.addEventListener('keyup', this.handleKeyUp.bind(this));
-            }
-
-            handleKeyDown(event) {
-                switch (event.code) {
-                    case 'KeyZ':
-                        this.controlsState.moveForward = true;
-                        break;
-                    case 'KeyS':
-                        this.controlsState.moveBackward = true;
-                        break;
-                    case 'KeyQ':
-                        this.controlsState.moveLeft = true;
-                        break;
-                    case 'KeyD':
-                        this.controlsState.moveRight = true;
-                        break;
-                }
-            }
-
-            handleKeyUp(event) {
-                switch (event.code) {
-                    case 'KeyZ':
-                        this.controlsState.moveForward = false;
-                        break;
-                    case 'KeyS':
-                        this.controlsState.moveBackward = false;
-                        break;
-                    case 'KeyQ':
-                        this.controlsState.moveLeft = false;
-                        break;
-                    case 'KeyD':
-                        this.controlsState.moveRight = false;
-                        break;
-                }
-            }
-
-            update(delta) {
-                if (this.controls.isLocked) {
-                    this.velocity.set(0, 0, 0);
-                    if (this.controlsState.moveForward) this.velocity.z -= this.moveSpeed * delta;
-                    if (this.controlsState.moveBackward) this.velocity.z += this.moveSpeed * delta;
-                    if (this.controlsState.moveLeft) this.velocity.x -= this.moveSpeed * delta;
-                    if (this.controlsState.moveRight) this.velocity.x += this.moveSpeed * delta;
-
-                    this.controls.moveRight(this.velocity.x);
-                    this.controls.moveForward(this.velocity.z);
-                }
-            }
-        }
-
-        // Classe de gestion des ressources
-        class LoaderManager {
+        // Gestionnaire de la physique Cannon.js
+        class PhysicsManager {
             constructor() {
-                this.loaderGLTF = new THREE.GLTFLoader();
-                this.models = {};
-                this.objectsConfig = null;
-                this.loadedModelsJSON = {};
+                this.world = new CANNON.World();
+                this.world.gravity.set(0, -9.82, 0);
+                this.fixedTimeStep = 1 / 60;
+                this.maxSubSteps = 3;
             }
 
-            async loadAllResources() {
-                await Promise.all([
-                    this.loadModels(),
-                    this.loadObjectsConfig('configs/objectsConfig.json'),
-                ]);
-                await this.preloadModelsFromJSON();
-            }
-
-            async loadModels() {
-                const modelPaths = {
-                    'allowed': 'models/allowed/burger.glb',
-                    'forbidden': 'models/forbidden/burger.glb',
-                    'plateau': 'models/plateau.glb',
-                    'poubelle': 'models/poubelle.glb',
-                    // Ajoutez d'autres modèles si nécessaire
-                };
-
-                const promises = Object.keys(modelPaths).map(async key => {
-                    try {
-                        const gltf = await this.loaderGLTF.loadAsync(modelPaths[key]);
-                        this.models[key] = gltf.scene;
-                        console.log(`Modèle ${key} chargé.`);
-                    } catch (error) {
-                        console.error(`Erreur lors du chargement du modèle ${modelPaths[key]}:`, error);
-                    }
-                });
-
-                await Promise.all(promises);
-            }
-
-            async loadObjectsConfig(url) {
-                try {
-                    const response = await fetch(url);
-                    if (!response.ok) {
-                        throw new Error(`Erreur de chargement du JSON: ${response.statusText}`);
-                    }
-                    this.objectsConfig = await response.json();
-                    console.log('Configuration des objets chargée:', this.objectsConfig);
-                } catch (error) {
-                    console.error(error);
-                    this.objectsConfig = null;
-                }
-            }
-
-            async preloadModelsFromJSON() {
-                if (!this.objectsConfig || !this.objectsConfig.objects.length) {
-                    console.warn('Aucune configuration d\'objets disponible pour le préchargement.');
-                    return;
-                }
-
-                const promises = this.objectsConfig.objects.map(async objConfig => {
-                    try {
-                        const gltf = await this.loaderGLTF.loadAsync(objConfig.model);
-                        this.loadedModelsJSON[objConfig.id] = gltf.scene;
-                        console.log(`Modèle ${objConfig.id} chargé.`);
-                    } catch (error) {
-                        console.error(`Erreur lors du chargement du modèle ${objConfig.model}:`, error);
-                    }
-                });
-
-                await Promise.all(promises);
+            step() {
+                this.world.step(this.fixedTimeStep, undefined, this.maxSubSteps);
             }
         }
 
-        // Classe pour les objets de la carte
-        class MapObject {
-            constructor(physicsWorld, scene, config, models) {
-                this.physicsWorld = physicsWorld;
-                this.scene = scene;
-                this.config = config;
-                this.models = models;
+        // Gestionnaire des entrées utilisateur
+        class InputManager {
+            constructor() {
+                this.keys = {};
+                this.listeners = {};
 
-                this.createObject();
+                this.initControls();
             }
 
-            createObject() {
-                let mesh;
+            initControls() {
+                document.addEventListener('keydown', (e) => this.onKeyChange(e, true));
+                document.addEventListener('keyup', (e) => this.onKeyChange(e, false));
+            }
 
-                if (this.config.model) {
-                    // Vérifie si le modèle est chargé
-                    if (this.models[this.config.model]) {
-                        // Utilise le modèle GLB
-                        mesh = this.models[this.config.model].clone();
-                    } else {
-                        console.warn(`Le modèle "${this.config.model}" n'est pas chargé.`);
-                        return; // Arrête la création de l'objet
-                    }
-                } else {
-                    // Crée une forme géométrique par défaut si aucun modèle n'est défini
-                    const geometry = new THREE.BoxGeometry(
-                        this.config.size?.x || 1,
-                        this.config.size?.y || 1,
-                        this.config.size?.z || 1
-                    );
-                    const material = new THREE.MeshStandardMaterial({ color: this.config.color || 0xffffff });
-                    mesh = new THREE.Mesh(geometry, material);
+            onKeyChange(event, isPressed) {
+                const key = event.key.toLowerCase();
+                this.keys[key] = isPressed;
+
+                if (this.listeners[key]) {
+                    this.listeners[key].forEach(callback => callback(isPressed));
+                }
+            }
+
+            bindKey(key, callback) {
+                key = key.toLowerCase();
+                if (!this.listeners[key]) {
+                    this.listeners[key] = [];
+                }
+                this.listeners[key].push(callback);
+            }
+
+            isKeyPressed(key) {
+                return !!this.keys[key.toLowerCase()];
+            }
+        }
+
+        // Classe représentant un objet du jeu
+        class GameObject {
+            constructor(options) {
+                this.scene = options.scene;
+                this.world = options.world;
+                this.game = options.game;
+
+                // Fusion des options avec les valeurs par défaut
+                const defaultTransform = {
+                    position: { x: 0, y: 0, z: 0 },
+                    rotation: { x: 0, y: 0, z: 0 },
+                    size: { x: 1, y: 1, z: 1 }
+                };
+                const defaultPhysics = { mass: 0, friction: 0.3 };
+                const defaultAppearance = { color: 0x808080, opacity: 1, texturePath: null, shapeType: 'box' };
+
+                const defaultModel = { path: null };
+                const defaultCollider = { type: 'box', size: { x: 1, y: 1, z: 1 } };
+                const defaultIsDynamic = false;
+
+                this.transform = Object.assign({}, defaultTransform, options.transform);
+                this.transform.position = Object.assign({}, defaultTransform.position, options.transform?.position);
+                this.transform.rotation = Object.assign({}, defaultTransform.rotation, options.transform?.rotation);
+                this.transform.size = Object.assign({}, defaultTransform.size, options.transform?.size);
+
+                this.physics = Object.assign({}, defaultPhysics, options.physics);
+                this.appearance = Object.assign({}, defaultAppearance, options.appearance);
+                this.model = Object.assign({}, defaultModel, options.model);
+                this.collider = Object.assign({}, defaultCollider, options.collider);
+                this.isDynamic = Object.assign({}, defaultIsDynamic, options.isDynamic);
+
+                // Configuration physique avec groupes de collision
+                this.body = new CANNON.Body({
+                    mass: this.physics.mass,
+                    position: new CANNON.Vec3(this.transform.position.x, this.transform.position.y, this.transform.position.z),
+                    material: new CANNON.Material({ friction: this.physics.friction }),
+                    quaternion: new CANNON.Quaternion().setFromEuler(this.transform.rotation.x, this.transform.rotation.y, this.transform.rotation.z, 'XYZ'),
+                    collisionFilterGroup: COLLISION_GROUP_OBJECT,
+                    collisionFilterMask: COLLISION_GROUP_PLAYER | COLLISION_GROUP_OBJECT // Collide avec le joueur et les autres objets
+                });                // Apply initial rotation to the physics body
+
+                // Définir la forme de collision
+                this.setCollider();
+
+                // Ajouter le corps physique au monde
+                this.world.addBody(this.body);
+
+                // Charger ou créer le modèle visuel
+                this.initVisual();
+
+                // Ajouter l'objet aux objets dynamiques de la scène
+                if (this.isDynamic) {
+                    options.game.dynamicObjects.push(this);
                 }
 
-                mesh.position.copy(this.config.position || new THREE.Vector3());
-                this.scene.add(mesh);
+                // Indique si l'objet est actuellement attrapé
+                this.isGrabbed = false;
+            }
 
-                // Gestion du matériau
-                let material = null;
-                if (this.config.material) {
-                    material = getOrCreateMaterial(this.physicsWorld, this.config.material);
+            setCollider() {
+                const { type, size } = this.collider;
+                let shape;
+                switch (type) {
+                    case 'sphere':
+                        shape = new CANNON.Sphere(size.x / 2);
+                        break;
+                    case 'cylinder':
+                        shape = new CANNON.Cylinder(size.x / 2, size.x / 2, size.y, 12);
+                        break;
+                    case 'box':
+                    default:
+                        shape = new CANNON.Box(new CANNON.Vec3(size.x / 2, size.y / 2, size.z / 2));
                 }
+                this.body.addShape(shape);
+            }
 
-                // Création du corps physique
-                const shape = new CANNON.Box(new CANNON.Vec3(
-                    (this.config.size?.x || 1) / 2,
-                    (this.config.size?.y || 1) / 2,
-                    (this.config.size?.z || 1) / 2
-                ));
+            initVisual() {
+                const { color, opacity, texturePath, shapeType } = this.appearance;
+                const { size, rotation, position } = this.transform;
 
-                const body = new CANNON.Body({
-                    mass: this.config.mass || 0,
-                    shape,
-                    position: new CANNON.Vec3(
-                        this.config.position?.x || 0,
-                        this.config.position?.y || 0,
-                        this.config.position?.z || 0
-                    ),
-                    material: material,
-                });
+                // Création du matériau
+                const materialOptions = {
+                    color: color,
+                    transparent: opacity < 1,
+                    opacity: opacity
+                };
+                if (texturePath) {
+                    const textureLoader = new THREE.TextureLoader();
+                    materialOptions.map = textureLoader.load(texturePath);
+                }
+                const material = new THREE.MeshStandardMaterial(materialOptions);
 
-                // Gestion des matériaux de contact
-                if (this.config.contactMaterials) {
-                    this.config.contactMaterials.forEach(contactMaterialConfig => {
-                        const materialA = material;
-                        const materialB = getOrCreateMaterial(this.physicsWorld, contactMaterialConfig.with);
-                        const contactMaterial = new CANNON.ContactMaterial(materialA, materialB, {
-                            friction: contactMaterialConfig.friction || 0,
-                            restitution: contactMaterialConfig.restitution || 0,
+                // Création du maillage
+                if (this.model.path) {
+                    const loader = new THREE.GLTFLoader();
+                    loader.load(this.model.path, (gltf) => {
+                        this.mesh = gltf.scene;
+                        this.mesh.userData.gameObject = this; // Ajout de la référence à GameObject
+                        this.applyTransformations();
+                        this.scene.add(this.mesh);
+
+                        // Associer le corps physique à tous les maillages enfants
+                        this.mesh.traverse((child) => {
+                            if (child.isMesh) {
+                                child.userData.body = this.body;
+                            }
                         });
-                        this.physicsWorld.addContactMaterial(contactMaterial);
-                    });
-                }
 
-                this.physicsWorld.addBody(body);
-                mesh.userData.body = body;
-                this.mesh = mesh;
-                this.body = body;
+                        // Ajout d'un helper pour visualiser le collider
+                        this.addColliderHelper();
+                    });
+                } else {
+                    this.createDefaultMesh(shapeType, material, size);
+                }
             }
 
-            update() {
-                // Si l'objet est dynamique, mettre à jour sa position
-                if (this.body.mass > 0) {
+            createDefaultMesh(shapeType, material, size) {
+                switch (shapeType) {
+                    case 'sphere':
+                        this.mesh = new THREE.Mesh(new THREE.SphereGeometry(size.x / 2, 32, 32), material);
+                        break;
+                    case 'cylinder':
+                        this.mesh = new THREE.Mesh(new THREE.CylinderGeometry(size.x / 2, size.x / 2, size.y, 12), material);
+                        break;
+                    case 'box':
+                    default:
+                        this.mesh = new THREE.Mesh(new THREE.BoxGeometry(size.x, size.y, size.z), material);
+                }
+                this.mesh.userData.gameObject = this; // Ajout de la référence à GameObject
+                this.applyTransformations();
+                this.scene.add(this.mesh);
+
+                // Associer le corps physique au maillage pour permettre la récupération dans Player
+                this.mesh.userData.body = this.body;
+
+                // Ajout d'un helper pour visualiser le collider
+                this.addColliderHelper();
+            }
+
+            applyTransformations() {
+                if (this.mesh && this.body) {
                     this.mesh.position.copy(this.body.position);
                     this.mesh.quaternion.copy(this.body.quaternion);
                 }
             }
-        }
 
-        // Classe du tapis roulant
-        class ConveyorBelt {
-            constructor(physicsWorld, scene, { size, position, velocity, material = new THREE.MeshStandardMaterial({ color: 0x555555 }) }) {
-                this.physicsWorld = physicsWorld;
-                this.scene = scene;
-                this.size = size;
-                this.velocity = velocity.clone();
-
-                // Gestion du matériau du tapis roulant
-                const conveyorMaterialConfig = {
-                    name: "conveyorMaterial",
-                    friction: 0,
-                    restitution: 0,
-                };
-                const conveyorMaterial = getOrCreateMaterial(this.physicsWorld, conveyorMaterialConfig);
-
-                // Création du mesh graphique
-                this.mesh = new THREE.Mesh(
-                    new THREE.BoxGeometry(this.size.x, this.size.y, this.size.z),
-                    material
-                );
-                this.mesh.position.copy(position);
-                this.scene.add(this.mesh);
-
-                // Création du corps physique avec le matériau
-                this.body = new CANNON.Body({
-                    mass: 0,
-                    shape: new CANNON.Box(new CANNON.Vec3(this.size.x / 2, this.size.y / 2, this.size.z / 2)),
-                    position: new CANNON.Vec3(position.x, position.y, position.z),
-                    material: conveyorMaterial,
-                });
-                this.physicsWorld.addBody(this.body);
-
-                // Configurer le matériau de contact entre le tapis roulant et les plateaux
-                const plateauMaterial = getOrCreateMaterial(this.physicsWorld, { name: "plateauMaterial" });
-                const contactMaterial = new CANNON.ContactMaterial(conveyorMaterial, plateauMaterial, {
-                    friction: 0, // Sans friction
-                    restitution: 0,
-                });
-                this.physicsWorld.addContactMaterial(contactMaterial);
-            }
-
-            setVelocity(newVelocity) {
-                this.velocity.copy(newVelocity);
-            }
-
-            applyEffect() {
-                this.physicsWorld.bodies.forEach(body => {
-                    if (body.mass > 0) {
-                        // Vérifier si le body est en contact avec le tapis roulant
-                        const contactPairs = this.physicsWorld.contacts.filter(contact => {
-                            return (contact.bi === this.body || contact.bj === this.body) &&
-                                (contact.bi === body || contact.bj === body);
-                        });
-
-                        if (contactPairs.length > 0) {
-                            // Appliquer une force pour simuler le mouvement du tapis roulant
-                            const force = new CANNON.Vec3(
-                                this.velocity.x * body.mass * 10,
-                                this.velocity.y * body.mass * 10,
-                                this.velocity.z * body.mass * 10
-                            );
-                            body.applyForce(force, body.position);
-                        }
-                    }
-                });
-            }
-        }
-
-
-        // Classe pour les objets interactifs (plateaux)
-        class InteractiveObject {
-            constructor(physicsWorld, scene, model, position, objectsConfig, loadedModelsJSON) {
-                this.physicsWorld = physicsWorld;
-                this.scene = scene;
-                this.mesh = model.clone();
-                this.mesh.position.copy(position);
-                this.scene.add(this.mesh);
-
-                // Indiquer que c'est un plateau
-                this.mesh.userData.isPlateau = true;
-
-                // Création du corps physique
-                const bbox = new THREE.Box3().setFromObject(this.mesh);
-                const size = new THREE.Vector3();
-                bbox.getSize(size);
-                const shape = new CANNON.Box(new CANNON.Vec3(size.x / 2, size.y / 2, size.z / 2));
-
-                // Gestion du matériau du plateau
-                const plateauMaterialConfig = {
-                    name: "plateauMaterial",
-                    friction: 0, // Sans friction avec le tapis roulant
-                    restitution: 0,
-                };
-                const plateauMaterial = getOrCreateMaterial(this.physicsWorld, plateauMaterialConfig);
-
-                this.body = new CANNON.Body({
-                    mass: 1,
-                    shape,
-                    position: new CANNON.Vec3(position.x, position.y, position.z),
-                    linearDamping: 0.1,
-                    angularDamping: 0.9, // Désactiver la rotation
-                    material: plateauMaterial,
-                });
-
-                this.physicsWorld.addBody(this.body);
-                this.mesh.userData.body = this.body;
-                this.mesh.userData.interactive = true; // Ajouté pour le grab
-
-                // Marquer si l'objet est interdit
-                this.mesh.userData.hasForbidden = false;
-
-                // Ajouter des objets sur le plateau
-                this.addObjectsToPlateau(objectsConfig, loadedModelsJSON);
-            }
-
-            addObjectsToPlateau(objectsConfig, loadedModelsJSON) {
-                if (!objectsConfig || !objectsConfig.objects.length) {
-                    console.warn('Aucune configuration d\'objets disponible.');
-                    return;
-                }
-
-                const basePositions = [
-                    new THREE.Vector3(0.3, 0.1, 0.2),
-                    new THREE.Vector3(0, 0.1, 0.2),
-                    new THREE.Vector3(-0.3, 0.1, 0.2),
-                    new THREE.Vector3(0.3, 0.1, -0.2),
-                    new THREE.Vector3(0, 0.1, -0.2),
-                    new THREE.Vector3(-0.3, 0.1, -0.2),
-                ];
-
-                const selectedObjects = objectsConfig.objects.sort(() => Math.random() - 0.5).slice(0, 6);
-
-                selectedObjects.forEach((objConfig, index) => {
-                    const preloadedModel = loadedModelsJSON[objConfig.id];
-                    if (!preloadedModel) {
-                        console.warn(`Modèle préchargé manquant pour l'objet ID: ${objConfig.id}`);
+            addColliderHelper() {
+                // Créer un helper pour visualiser le collider basé sur la forme physique
+                let geometry;
+                const shape = this.body.shapes[0];
+                switch (shape.type) {
+                    case CANNON.Shape.types.BOX:
+                        const halfExtents = shape.halfExtents;
+                        geometry = new THREE.BoxGeometry(halfExtents.x * 2, halfExtents.y * 2, halfExtents.z * 2);
+                        break;
+                    case CANNON.Shape.types.SPHERE:
+                        const radius = shape.radius;
+                        geometry = new THREE.SphereGeometry(radius, 16, 16);
+                        break;
+                    case CANNON.Shape.types.CYLINDER:
+                        const radiusTop = shape.radiusTop;
+                        const radiusBottom = shape.radiusBottom;
+                        const height = shape.height;
+                        geometry = new THREE.CylinderGeometry(radiusTop, radiusBottom, height, 16);
+                        break;
+                    // Ajoutez d'autres types de formes si nécessaire
+                    default:
+                        console.warn('Type de forme non reconnu pour la visualisation du collider.');
                         return;
-                    }
+                }
+                const material = new THREE.MeshBasicMaterial({ color: 0xffff00, wireframe: true });
+                const helper = new THREE.Mesh(geometry, material);
+                helper.name = 'ColliderHelper';
+                this.scene.add(helper);
 
-                    const clonedModel = preloadedModel.clone();
+                // Initialiser la position et la rotation du helper
+                helper.position.copy(this.body.position);
+                helper.quaternion.copy(this.body.quaternion);
 
-                    const positionOffset = new THREE.Vector3(
-                        objConfig.position?.x || 0,
-                        objConfig.position?.y || 0,
-                        objConfig.position?.z || 0
-                    );
+                // Mettre à jour le helper uniquement si l'objet est dynamique
+                if (this.body.mass > 0) {
+                    this.updateColliderHelper = () => {
+                        helper.position.copy(this.body.position);
+                        helper.quaternion.copy(this.body.quaternion);
+                    };
+                }
+            }
 
-                    const finalPosition = basePositions[index].clone().add(positionOffset);
-                    clonedModel.position.copy(finalPosition);
+            grab() {
+                this.isGrabbed = true;
+            }
 
-                    clonedModel.rotation.set(
-                        THREE.MathUtils.degToRad(objConfig.rotation?.x || 0),
-                        THREE.MathUtils.degToRad(objConfig.rotation?.y || 0),
-                        THREE.MathUtils.degToRad(objConfig.rotation?.z || 0)
-                    );
-
-                    clonedModel.scale.set(
-                        objConfig.scale?.x || 1,
-                        objConfig.scale?.y || 1,
-                        objConfig.scale?.z || 1
-                    );
-
-                    this.mesh.add(clonedModel);
-
-                    // Marquer l'objet comme interdit si nécessaire
-                    if (objConfig.model.includes('forbidden')) {
-                        this.mesh.userData.hasForbidden = true;
-                        clonedModel.traverse(child => {
-                            if (child.isMesh) {
-                                child.parent.userData.hasForbidden = true;
-                            }
-                        });
-                    }
-                });
+            ungrab() {
+                this.isGrabbed = false;
             }
 
             update() {
-                this.mesh.position.copy(this.body.position);
-                this.mesh.quaternion.copy(this.body.quaternion);
+                if (this.isGrabbed) return; // Ne pas mettre à jour si l'objet est attrapé
+
+                if (this.body.mass > 0 && this.mesh) {
+                    this.mesh.position.copy(this.body.position);
+                    this.mesh.quaternion.copy(this.body.quaternion);
+                    if (this.updateColliderHelper) {
+                        this.updateColliderHelper();
+                    }
+                }
             }
         }
 
-        // Classe de la poubelle
-        class GarbageBin {
-            constructor(physicsWorld, scene, model, scoreSystem) {
-                this.physicsWorld = physicsWorld;
-                this.scene = scene;
-                this.scoreSystem = scoreSystem;
-                this.mesh = model.clone();
-                this.mesh.position.set(0, 1, 10);
-                this.scene.add(this.mesh);
+        // Mise à jour de la classe Tray pour charger des modèles GLB de nourriture dynamiquement
+        class Tray extends GameObject {
+            constructor(options) {
+                super(options);
+                this.type = 'tray'; // Définir le type plateau
+                this.UnhealthyCount = 0; // Compteur de malbouffe
+                this.healthyFoodModels = [
+                    'models/soda.glb',
+                    'models/test.glb',
+                    // Ajoutez les chemins vers vos modèles de nourriture saine ici
+                ];
 
-                const bbox = new THREE.Box3().setFromObject(this.mesh);
-                const size = new THREE.Vector3();
-                bbox.getSize(size);
-                const shape = new CANNON.Box(new CANNON.Vec3(size.x / 2, size.y / 2, size.z / 2));
+                this.unhealthyFoodModels = [
+                    'models/burger.glb',
+                    'models/hotdog.glb',
+                    // Ajoutez les chemins vers vos modèles de nourriture non saine ici
+                ];
 
-                // Création du matériau de la poubelle
-                const garbageMaterialConfig = {
-                    name: "garbageMaterial",
-                    friction: 0.5,
-                    restitution: 0.3,
-                };
-                const garbageMaterial = getOrCreateMaterial(this.physicsWorld, garbageMaterialConfig);
+                this.foodModels = [...this.healthyFoodModels, ...this.unhealthyFoodModels];
+                this.initFood();
+            }
 
-                this.body = new CANNON.Body({
-                    mass: 0,
-                    shape,
-                    position: new CANNON.Vec3(0, 1, 10),
-                    material: garbageMaterial,
+            initFood() {
+                const positions = [
+                    { x: -0.5, y: 0.05, z: -0.3 },
+                    { x: 0, y: 0.05, z: -0.3 },
+                    { x: 0.5, y: 0.05, z: -0.3 },
+                    { x: -0.5, y: 0.05, z: 0.3 },
+                    { x: 0, y: 0.05, z: 0.3 },
+                    { x: 0.5, y: 0.05, z: 0.3 }
+                ];
+
+                const loader = new THREE.GLTFLoader();
+                const count = Math.floor(Math.random() * 6) + 1;
+                const shuffled = positions.sort(() => 0.5 - Math.random()).slice(0, count);
+
+                shuffled.forEach(position => {
+                    const modelPath = this.foodModels[Math.floor(Math.random() * this.foodModels.length)];
+
+                    const isUnhealthy = this.unhealthyFoodModels.includes(modelPath);
+                    if (isUnhealthy) {
+                        this.UnhealthyCount += 1;
+                    }
+
+                    loader.load(modelPath, gltf => {
+                        const food = gltf.scene;
+                        food.position.set(position.x, position.y, position.z);
+                        this.mesh.add(food);
+                    });
                 });
-                this.physicsWorld.addBody(this.body);
-
-                // Écouteur d'événement de collision
-                this.body.addEventListener('collide', this.handleCollision.bind(this));
-            }
-
-            handleCollision(event) {
-                const collidedBody = event.body;
-
-                // Vérifiez si le corps collisionné est un plateau
-                if (collidedBody && collidedBody.mesh && collidedBody.mesh.userData.isPlateau) {
-                    // Supprimer l'objet de la scène et du monde physique
-                    this.scene.remove(collidedBody.mesh);
-                    this.physicsWorld.removeBody(collidedBody);
-
-                    // Mettre à jour le score
-                    this.scoreSystem.addPoints(10);
-                    console.log('Plateau jeté dans la poubelle ! Score +10.');
-                }
             }
         }
 
-        // Initialisation de la scène
-        const gameScene = new GameScene();
-
-        // Gestion du score
-        const scoreSystem = new ScoreSystem('score');
-
-        // Gestion des ressources
-        const loaderManager = new LoaderManager();
-
-        // Variables pour le grab
-        let grabbedBody = null;
-        let grabConstraint = null;
-        let grabHoldBody = null; // Corps fixe représentant le point de grab
-
-        // Liste des objets interactifs
-        const interactiveObjects = [];
-        const interactiveMeshes = []; // Ajouté pour le grab
-        const interactiveBodies = []; // Ajouté pour le grab
-
-        // Fonction pour attraper un objet
-        function grabObject(body) {
-            if (grabConstraint) {
-                releaseObject(); // Libérer tout objet déjà attrapé
+        class TrayReceptor extends GameObject {
+            constructor(options) {
+                super(options);
             }
 
-            grabbedBody = body;
-
-            // Définir le point de maintien devant la caméra
-            const cameraDirection = new THREE.Vector3();
-            gameScene.camera.getWorldDirection(cameraDirection);
-            const holdPoint = new CANNON.Vec3(
-                gameScene.camera.position.x + cameraDirection.x * 1.5,
-                gameScene.camera.position.y + cameraDirection.y * 1.5,
-                gameScene.camera.position.z + cameraDirection.z * 1.5
-            );
-
-            // Création d'un corps fixe pour représenter le point de maintien
-            grabHoldBody = new CANNON.Body({
-                mass: 0, // Corps statique
-                position: holdPoint,
-                shape: new CANNON.Sphere(0.1), // Corps point avec un petit rayon
-            });
-            gameScene.physicsWorld.addBody(grabHoldBody);
-
-            // Création de la contrainte entre l'objet attrapé et le point de maintien
-            grabConstraint = new CANNON.PointToPointConstraint(
-                grabbedBody,
-                new CANNON.Vec3(0, 0, 0), // Pivot local sur l'objet attrapé
-                grabHoldBody,
-                new CANNON.Vec3(0, 0, 0), // Pivot local sur le point de maintien
-                {
-                    maxForce: 1000,
-                }
-            );
-            gameScene.physicsWorld.addConstraint(grabConstraint);
-
-            // Bloquer la rotation de l’objet en fixant sa vitesse angulaire à zéro
-            grabbedBody.angularVelocity.set(0, 0, 0);
-            grabbedBody.angularDamping = 1; // Réduire les rotations
-        }
-
-        // Fonction pour relâcher un objet
-        function releaseObject() {
-            if (grabConstraint) {
-                gameScene.physicsWorld.removeConstraint(grabConstraint);
-                grabConstraint = null;
-            }
-            if (grabHoldBody) {
-                gameScene.physicsWorld.removeBody(grabHoldBody);
-                grabHoldBody = null;
+            update() {
+                this.game.dynamicObjects.forEach(obj => {
+                    const body = obj.body;
+                    if (this.isInContact(body)) {
+                        document.getElementById('unhealthyCount').textContent = `Unhealthy Count: ${this.game.player.UnhealthyCount}`;
+                        //verifier si l'objet est de type tray et si oui, recuperer la variable de malbouffe et detruire le tray
+                        if (obj.type === 'tray') {
+                            // Detruire le tray
+                            this.scene.remove(obj.mesh);
+                            this.world.removeBody(obj.body);
+                            // Ajouter la variable de malbouffe au joueur
+                            this.game.player.UnhealthyCount += obj.UnhealthyCount;
+                        }
+                    }
+                });
+                super.update();
             }
 
-            // Rétablir l'amortissement angulaire à la valeur par défaut
-            if (grabbedBody) {
-                grabbedBody.angularDamping = 0.1; // Ou la valeur par défaut utilisée dans votre jeu
+            isInContact(body) {
+                return this.world.contacts.some(contact => {
+                    return (
+                        (contact.bi === this.body && contact.bj === body) ||
+                        (contact.bj === this.body && contact.bi === body)
+                    );
+                });
+            }
+        }  
+
+        class ConveyorBelt extends GameObject {
+            constructor(options) {
+                super(options);
+
+                this.speed = options.speed || 0.5;
+
+                // Définir la rotation initiale
+                const rotation = options.transform.rotation || new THREE.Vector3(0, 0, 0);
+                const euler = new THREE.Euler(rotation.x, rotation.y, rotation.z, 'XYZ');
+
+                // Calculer la direction basée sur la rotation initiale
+                this.direction = new THREE.Vector3(1, 0, 0).applyEuler(euler).normalize();
             }
 
-            grabbedBody = null;
-        }
+            update() {
+                this.game.dynamicObjects.forEach(obj => {
+                    const body = obj.body;
+                    if (this.isInContact(body)) {
+                        // Appliquer la vélocité en fonction de la direction fixe
+                        body.velocity.set(
+                            this.direction.x * this.speed,
+                            body.velocity.y,
+                            this.direction.z * this.speed
+                        );
+                    }
+                });
+                super.update();
+            }
 
-        // Mettre à jour la position du point de maintien
-        function updateGrabHoldPosition() {
-            if (grabHoldBody) {
-                const cameraDirection = new THREE.Vector3();
-                gameScene.camera.getWorldDirection(cameraDirection);
-                const newHoldPoint = new CANNON.Vec3(
-                    gameScene.camera.position.x + cameraDirection.x * 1.5,
-                    gameScene.camera.position.y + cameraDirection.y * 1.5,
-                    gameScene.camera.position.z + cameraDirection.z * 1.5
-                );
-                grabHoldBody.position.copy(newHoldPoint);
+            isInContact(body) {
+                return this.world.contacts.some(contact => {
+                    return (
+                        (contact.bi === this.body && contact.bj === body) ||
+                        (contact.bj === this.body && contact.bi === body)
+                    );
+                });
             }
         }
 
-        // Événements de la souris
-        window.addEventListener('mousedown', () => {
-            if (grabbedBody) return; // Ne rien faire si un objet est déjà attrapé
+        class IntervalExecutor {
+            constructor(callback, interval) {
+                this.callback = callback;
+                this.interval = interval;
+                this.timerId = null;
+                this.start();
+            }
 
-            const raycaster = new THREE.Raycaster();
-            const center = new THREE.Vector2(0, 0); // Centre de l'écran
-            raycaster.setFromCamera(center, gameScene.camera);
+            start() {
+                this.stop(); // Ensure no multiple timers
+                this.timerId = setInterval(this.callback, this.interval);
+            }
 
-            // Intersections avec les objets interactifs
-            const intersects = raycaster.intersectObjects(interactiveMeshes, true); // Inclure les descendants
-
-            if (intersects.length > 0) {
-                const intersectedMesh = intersects[0].object;
-                let bodyToGrab = null;
-
-                // Trouver le mesh parent s'il existe
-                let parentMesh = intersectedMesh;
-                while (parentMesh && !interactiveMeshes.includes(parentMesh)) {
-                    parentMesh = parentMesh.parent;
-                }
-
-                if (parentMesh) {
-                    const index = interactiveMeshes.indexOf(parentMesh);
-                    bodyToGrab = interactiveBodies[index];
-                }
-
-                if (bodyToGrab) {
-                    grabObject(bodyToGrab);
+            stop() {
+                if (this.timerId !== null) {
+                    clearInterval(this.timerId);
+                    this.timerId = null;
                 }
             }
-        });
 
-        window.addEventListener('mouseup', () => {
-            releaseObject();
-        });
+            setIntervalTime(newInterval) {
+                this.interval = newInterval;
+                this.start();
+            }
+        }
 
-        // Chargement des ressources
-        loaderManager.loadAllResources().then(() => {
-            // Création des contrôles du joueur
-            const playerControls = new PlayerControls(gameScene.camera, gameScene.renderer.domElement);
+        // Classe représentant le joueur
+        class Player {
+            constructor(options) {
+                this.scene = options.scene;
+                this.world = options.world;
+                this.renderer = options.renderer;
+                this.input = options.input;
+                this.eventEmitter = options.eventEmitter;
+                this.cameraGroup = new THREE.Group();
+                this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                this.camera.position.y = 1.6;
+                this.cameraGroup.add(this.camera);
+                this.scene.add(this.cameraGroup);
 
-            // Création du tapis roulant
-            const conveyorBelt = new ConveyorBelt(gameScene.physicsWorld, gameScene.scene, {
-                size: { x: 20, y: 0.1, z: 3 },
-                position: new THREE.Vector3(0, 0.05, -5),
-                velocity: new CANNON.Vec3(0.01, 0, 0), // Vitesse initiale
-            });
+                // Initialiser le joueur
+                this.UnhealthyCount = 0;
 
-            // Vous pouvez changer la vitesse du tapis roulant
-            // conveyorBelt.setVelocity(new CANNON.Vec3(10, 0, 0));
+                // Corps physique du joueur
+                this.playerBody = new CANNON.Body({
+                    mass: 1,
+                    shape: new CANNON.Sphere(0.5),
+                    position: new CANNON.Vec3(0, 1.6, 0),
+                    material: new CANNON.Material({ friction: 0.3 }),
+                    collisionFilterGroup: COLLISION_GROUP_PLAYER,
+                    collisionFilterMask: COLLISION_GROUP_OBJECT // Collide uniquement avec les objets
+                });
+                this.world.addBody(this.playerBody);
 
-            // Création de la poubelle
-            const garbageBin = new GarbageBin(gameScene.physicsWorld, gameScene.scene, loaderManager.models['poubelle'], scoreSystem);
+                // Variables de contrôle
+                this.yaw = 0;
+                this.pitch = 0;
+                this.grabbedObject = null;
+                this.grabbedMesh = null; // Référence au maillage de l'objet grabé
 
-            // Génération des objets de la carte à partir de la configuration
-            const mapObjectsConfig = [
-                {
-                    size: { x: 1, y: 1, z: 1 },
-                    position: new THREE.Vector3(10, 0.5, -5),
-                    color: 0x00ff00,
-                    mass: 0,
-                    material: {
-                        name: "groundMaterial",
-                        friction: 0.4,
-                        restitution: 0.3,
+                // Initialisation des contrôles de la souris
+                this.initMouseControls();
+
+                // Ajout des écouteurs de clic de souris pour le grab/ungrab
+                this.initMouseClick();
+
+                // Ajout d'un helper pour visualiser le corps physique du joueur
+                this.addPlayerHelper();
+            }
+
+            initMouseControls() {
+                document.addEventListener('mousemove', (event) => {
+                    if (document.pointerLockElement === this.renderer.domElement) {
+                        this.yaw -= event.movementX * 0.002;
+                        this.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, this.pitch - event.movementY * 0.002));
+                        this.cameraGroup.rotation.y = this.yaw;
+                        this.camera.rotation.x = this.pitch;
+                    }
+                });
+            }
+
+            initMouseClick() {
+                document.addEventListener('mousedown', (event) => {
+                    if (event.button === 0) { // Clic gauche
+                        this.tryGrabObject();
+                    }
+                });
+
+                document.addEventListener('mouseup', (event) => {
+                    if (event.button === 0) { // Clic gauche
+                        this.ungrabObject();
+                    }
+                });
+            }
+
+            addPlayerHelper() {
+                // Créer un helper pour visualiser le corps physique du joueur
+                const sphereGeometry = new THREE.SphereGeometry(this.playerBody.shapes[0].radius, 16, 16);
+                const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
+                this.playerHelper = new THREE.Mesh(sphereGeometry, sphereMaterial);
+                this.scene.add(this.playerHelper);
+            }
+
+            updatePlayerHelper() {
+                if (this.playerHelper) {
+                    this.playerHelper.position.copy(this.playerBody.position);
+                }
+            }
+
+            update() {
+                this.handleMovement();
+                this.updateCameraPosition();
+
+                // Mise à jour du helper
+                this.updatePlayerHelper();
+            }
+
+            handleMovement() {
+                const direction = new THREE.Vector3(
+                    (this.input.isKeyPressed('q') ? -1 : 0) + (this.input.isKeyPressed('d') ? 1 : 0),
+                    0,
+                    (this.input.isKeyPressed('z') ? -1 : 0) + (this.input.isKeyPressed('s') ? 1 : 0)
+                ).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.yaw);
+
+                // Appliquer la vélocité directement
+                this.playerBody.velocity.x = direction.x * 5;
+                this.playerBody.velocity.z = direction.z * 5;
+            }
+
+            updateCameraPosition() {
+                this.cameraGroup.position.copy(this.playerBody.position);
+            }
+
+            tryGrabObject() {
+                if (this.grabbedObject) return; // Déjà un objet attrapé
+
+                const raycaster = new THREE.Raycaster();
+                const mouse = new THREE.Vector2(0, 0); // Centre de l'écran
+
+                raycaster.setFromCamera(mouse, this.camera);
+
+                // Collecte de tous les maillages qui pourraient être attrapés
+                const objectsToIntersect = [];
+                this.scene.traverse((child) => {
+                    if (child.isMesh && child.userData && child.userData.body && child.userData.body.mass > 0) {
+                        objectsToIntersect.push(child);
+                    }
+                });
+
+                const intersects = raycaster.intersectObjects(objectsToIntersect, true);
+                for (let intersect of intersects) {
+                    const object = intersect.object;
+
+                    if (object.userData && object.userData.body && object.userData.body.mass > 0) {
+                        this.grabbedObject = object.userData.body;
+                        this.grabbedMesh = object; // Stocker la référence au maillage
+
+                        // Désactiver la physique de l'objet
+                        this.disablePhysics(this.grabbedObject);
+
+                        // Marquer l'objet comme attrapé
+                        if (this.grabbedMesh.userData.gameObject) {
+                            this.grabbedMesh.userData.gameObject.grab();
+                        }
+
+                        // Attacher le maillage à la caméra
+                        this.attachMeshToCamera(this.grabbedMesh);
+
+                        console.log('Objet attrapé:', object);
+                        break;
+                    }
+                }
+            }
+
+            ungrabObject() {
+                if (!this.grabbedObject) return; // Aucun objet à libérer
+
+                // Détacher le maillage de la caméra
+                this.detachMeshFromCamera(this.grabbedMesh);
+
+                // Réactiver la physique de l'objet
+                this.enablePhysics(this.grabbedObject);
+
+                // Marquer l'objet comme libéré
+                if (this.grabbedMesh.userData.gameObject) {
+                    this.grabbedMesh.userData.gameObject.ungrab();
+                }
+
+                console.log('Objet libéré');
+
+                // Réinitialiser les références
+                this.grabbedObject = null;
+                this.grabbedMesh = null;
+            }
+
+            disablePhysics(body) {
+                // Enlever le corps du monde physique
+                this.world.removeBody(body);
+            }
+
+            enablePhysics(body) {
+                // Réajouter le corps au monde physique
+                this.world.addBody(body);
+                body.velocity.set(0, 0, 0); // Réinitialiser la vélocité
+                body.angularVelocity.set(0, 0, 0);
+            }
+
+            attachMeshToCamera(mesh) {
+                // Positionner l'objet à une distance fixe devant la caméra
+                const grabDistance = 1.5; // Distance devant la caméra
+                mesh.position.set(0, 0, -grabDistance);
+
+                // Définir la rotation pour qu'elle soit alignée avec la caméra
+                mesh.quaternion.set(0, 0, 0, 1);
+
+                // Ajouter le maillage à la caméra pour qu'il suive automatiquement les mouvements de la caméra
+                this.camera.add(mesh);
+            }
+
+            detachMeshFromCamera(mesh) {
+                // Mettre à jour la position mondiale avant de détacher
+                mesh.updateMatrixWorld(true);
+
+                // Obtenir la position mondiale du maillage
+                const position = new THREE.Vector3();
+                mesh.getWorldPosition(position);
+
+                // Retirer le maillage de la caméra et l'ajouter à la scène
+                this.camera.remove(mesh);
+                this.scene.add(mesh);
+
+                // Mettre à jour la position du corps physique
+                this.grabbedObject.position.set(position.x, position.y, position.z);
+
+                // Réorienter le corps physique pour correspondre à la rotation du maillage
+                const rotation = new THREE.Quaternion();
+                mesh.getWorldQuaternion(rotation);
+                this.grabbedObject.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w);
+            }
+        }
+
+        // Classe principale du jeu
+        class Game {
+            constructor() {
+                this.eventEmitter = new EventEmitter();
+                this.sceneManager = new SceneManager();
+                this.physicsManager = new PhysicsManager();
+                this.inputManager = new InputManager();
+                this.dynamicObjects = [];
+
+                this.initInstructions();
+                this.initWorld();
+                this.player = new Player({
+                    scene: this.sceneManager.scene,
+                    world: this.physicsManager.world,
+                    renderer: this.sceneManager.renderer,
+                    input: this.inputManager,
+                    eventEmitter: this.eventEmitter
+                });
+
+                // Gérer le redimensionnement de la fenêtre
+                window.addEventListener('resize', this.onWindowResize.bind(this));
+
+                this.animate = this.animate.bind(this);
+            }
+
+            initInstructions() {
+                const instructions = document.getElementById('instructions');
+                instructions.addEventListener('click', () => {
+                    this.sceneManager.renderer.domElement.requestPointerLock();
+                    instructions.style.display = 'none';
+                });
+            }
+
+            initWorld() {
+                // Création du sol
+                new GameObject({
+                    scene: this.sceneManager.scene,
+                    world: this.physicsManager.world,
+                    game: this,
+                    transform: {
+                        position: { x: 0, y: -0.5, z: 0 },
+                        size: { x: 40, y: 1, z: 40 }
                     },
-                    contactMaterials: [
-                        {
-                            with: {
-                                name: "plateauMaterial",
-                            },
-                            friction: 0, // Sans friction avec les plateaux
-                            restitution: 0.2,
+                    physics: {
+                        mass: 0,
+                        friction: 0.5,
+                        restitution: 0.3
+                    },
+                    appearance: {
+                        color: 0x00008B, // Bleu foncé
+                        shapeType: 'box',
+                        opacity: 1
+                    },
+                    collider: {
+                        type: 'box',
+                        size: { x: 40, y: 1, z: 40 }
+                    }
+                });
+
+                // Création d'un cube dynamique
+                new TrayReceptor({
+                    scene: this.sceneManager.scene,
+                    world: this.physicsManager.world,
+                    game: this,
+                    isDynamic: true,
+                    transform: {
+                        position: { x: 4, y: 0.5, z: -7.7 },
+                        size: { x: 1.4, y: 1.5, z: 2},
+                        rotation: { x: 0, y: Math.PI / 2, z: 0 }
+                    },
+                    physics: {
+                        mass: 0,
+                        friction: 0.3,
+                        restitution: 0.6
+                    },
+                    appearance: {
+                        color: 0x00FF00, // Vert
+                        shapeType: 'box',
+                        opacity: 1
+                    },
+                    collider: {
+                        type: 'box',
+                        size: { x: 1.4, y: 1.5, z: 2}
+                    }
+                });
+
+                new IntervalExecutor(() => {
+                    new Tray({
+                        scene: this.sceneManager.scene,
+                        world: this.physicsManager.world,
+                        game: this,
+                        IsDynamic: true,
+                        transform: {
+                            position: { x: -5, y: 1, z: -7 },
+                            size: { x: 1.4, y: 0.1, z: 1 }
                         },
-                    ],
-                },
-                // Ajoutez d'autres objets ici
-            ];
+                        physics: {
+                            mass: 1,
+                            friction: 0.2,
+                        },
+                        appearance: {
+                            color: 0xad8003,
+                            shapeType: 'box',
+                            opacity: 1
+                        },
+                        collider: {
+                            type: 'box',
+                            size: { x: 1.4, y: 0.1, z: 1 }
+                        }
+                    });
+                }, 1000);
 
-            mapObjectsConfig.forEach(config => {
-                const mapObject = new MapObject(gameScene.physicsWorld, gameScene.scene, config, loaderManager.models);
-            });
+                // Tapis roulant du côté gauche du U
+                new ConveyorBelt({
+                    scene: this.sceneManager.scene,
+                    world: this.physicsManager.world,
+                    game: this,
+                    IsDynamic: true,
+                    transform: {
+                        position: { x: -5, y: 0.5, z: -2.5 }, // Position décalée à gauche
+                        size: { x: 10, y: 1.5, z: 2 },        // Taille du tapis
+                        rotation: { x: 0, y: -Math.PI / 2, z: 0 } // Orientation verticale
+                    },
+                    physics: {
+                        mass: 0,
+                        friction: 0,
+                        restitution: 0
+                    },
+                    appearance: {
+                        color: 0x00FF00, // Vert
+                        shapeType: 'box',
+                        opacity: 1
+                    },
+                    collider: {
+                        type: 'box',
+                        size: { x: 10, y: 1.5, z: 2 }
+                    },
+                    speed: 1,
+                });
 
-            // Génération périodique des plateaux
-            setInterval(() => {
-                const interactiveObject = new InteractiveObject(
-                    gameScene.physicsWorld,
-                    gameScene.scene,
-                    loaderManager.models['plateau'],
-                    new THREE.Vector3(-9, 1, -5),
-                    loaderManager.objectsConfig,
-                    loaderManager.loadedModelsJSON
-                );
-                interactiveObjects.push(interactiveObject);
-                interactiveMeshes.push(interactiveObject.mesh); // Ajouté pour le grab
-                interactiveBodies.push(interactiveObject.body); // Ajouté pour le grab
-            }, 5000);
+                // Tapis roulant de la base du U
+                new ConveyorBelt({
+                    scene: this.sceneManager.scene,
+                    world: this.physicsManager.world,
+                    game: this,
+                    IsDynamic: true,
+                    transform: {
+                        position: { x: -1, y: 0.499, z: 3 }, // Position centrale
+                        size: { x: 10, y: 1.5, z: 2 },    // Taille du tapis
+                        rotation: { x: 0, y: 0, z: 0 }   // Orientation horizontale
+                    },
+                    physics: {
+                        mass: 0,
+                        friction: 0,
+                        restitution: 0
+                    },
+                    appearance: {
+                        color: 0x00FF00, // Vert
+                        shapeType: 'box',
+                        opacity: 1
+                    },
+                    collider: {
+                        type: 'box',
+                        size: { x: 10, y: 1.5, z: 2 }
+                    },
+                    speed: 1,
+                });
 
-            // Boucle d'animation
-            const clock = new THREE.Clock();
-            function animate() {
-                requestAnimationFrame(animate);
-                const delta = clock.getDelta();
-
-                // Mise à jour des contrôles
-                playerControls.update(delta);
-
-                // Mise à jour de la physique
-                gameScene.physicsWorld.step(1 / 60, delta);
-
-                // Mise à jour des objets interactifs
-                interactiveObjects.forEach(obj => obj.update());
-
-                // Appliquer l'effet du tapis roulant
-                conveyorBelt.applyEffect();
-
-                // Mise à jour de la position de l'objet attrapé
-                updateGrabHoldPosition(); // Ajouté
-
-                // Rendu de la scène
-                gameScene.renderer.render(gameScene.scene, gameScene.camera);
+                // Tapis roulant du côté droit du U
+                // Tapis roulant du côté gauche du U
+                new ConveyorBelt({
+                    scene: this.sceneManager.scene,
+                    world: this.physicsManager.world,
+                    game: this,
+                    IsDynamic: true,
+                    transform: {
+                        position: { x: 4, y: 0.498, z: -1.5 }, // Position décalée à gauche
+                        size: { x: 11, y: 1.5, z: 2 },        // Taille du tapis
+                        rotation: { x: 0, y: Math.PI / 2, z: 0 } // Orientation verticale
+                    },
+                    physics: {
+                        mass: 0,
+                        friction: 0,
+                        restitution: 0
+                    },
+                    appearance: {
+                        color: 0x00FF00, // Vert
+                        shapeType: 'box',
+                        opacity: 1
+                    },
+                    collider: {
+                        type: 'box',
+                        size: { x: 11, y: 1.5, z: 2 }
+                    },
+                    speed: 1,
+                });
             }
 
-            animate();
-        });
+            animate() {
+                requestAnimationFrame(this.animate);
+
+                // Mettre à jour la physique
+                this.physicsManager.step();
+
+                // Mettre à jour tous les objets dynamiques
+                this.dynamicObjects.forEach(obj => obj.update());
+
+                // Mettre à jour le joueur
+                this.player.update();
+
+                // Rendu de la scène avec la caméra du joueur
+                this.sceneManager.render(this.player.camera);
+            }
+
+            start() {
+                this.animate();
+            }
+
+            onWindowResize() {
+                this.player.camera.aspect = window.innerWidth / window.innerHeight;
+                this.player.camera.updateProjectionMatrix();
+                this.sceneManager.renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+        }
+
+        // Initialisation du jeu
+        const game = new Game();
+        game.start();
     </script>
 </body>
 
