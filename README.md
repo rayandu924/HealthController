@@ -1,4 +1,4 @@
-#Description du Projet
+# Description du Projet
 C'est un jeu interactif en 3D conçu pour sensibiliser les joueurs aux choix alimentaires et à l'importance de manger sainement. Dans ce jeu, un tapis roulant de nourriture défile avec différents plats. Le but est de repérer et de jeter à la poubelle les plats contenant de la malbouffe, tandis que les plats sains continuent sur le tapis roulant. Chaque choix influence l’humeur d’un petit personnage (la jauge d'humeur), qui monte ou descend selon les plats laissés sur le tapis roulant.
 
 # Objectif du Projet
