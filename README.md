@@ -11,4 +11,13 @@
 
 # Group Members
 - Ahouasso Alexander
+  - Interface Utilisateur (UI)
+  - Audio
+  - Animations 2D et 3D
+  - Gameplay
 - Farsi Abdelhamid
+  - Physics (Player & Objects)
+  - Interactions (Player & Objects)
+  - Mapping 3D
+  - Gameplay
+
