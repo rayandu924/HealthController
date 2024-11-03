@@ -17,13 +17,69 @@
         #instructions {
             position: absolute;
             top: 50%;
-            width: 100%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            max-width: 600px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            /* Fond semi-transparent pour l'écran de démarrage */
+            border-radius: 10px;
             text-align: center;
             color: white;
             font-family: Arial, sans-serif;
             user-select: none;
             cursor: pointer;
-            z-index: 1000;
+            z-index: 1500;
+            /* Assurez-vous qu'il est en dessous de gameOverScreen */
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .instruction-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 15px;
+            border-radius: 5px;
+        }
+
+        .instruction-text {
+            font-size: 1.2rem;
+        }
+
+        .instruction-icon {
+            font-size: 2rem;
+            /* Si vous utilisez des PNG, ajustez la taille en conséquence */
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Style du bouton de démarrage */
+        #start-button {
+            padding: 10px 20px;
+            font-size: 1.5rem;
+            border: none;
+            border-radius: 5px;
+            background-color: #28a745;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        #start-button:hover {
+            background-color: #218838;
+        }
+
+        /* Style du paragraphe de description */
+        .game-description {
+            font-size: 1rem;
+            padding: 0 20px;
         }
 
         /* Style du crosshair */
@@ -44,20 +100,248 @@
             /* Permet de cliquer à travers le crosshair */
             z-index: 1000;
         }
+
+        /* --- Début des Styles du Slider --- */
+
+        .slider-container {
+            position: absolute;
+            /* Positionnement absolu pour placer le slider sur l'écran */
+            bottom: 10px;
+            /* Positionner le slider en bas */
+            left: 50%;
+            /* Centrer horizontalement */
+            transform: translateX(-50%);
+            /* Centrer précisément */
+            display: flex;
+            align-items: center;
+            width: 400px;
+            /* Augmenté de 300px à 400px */
+            z-index: 1000;
+            /* Assurer que le slider est au-dessus des autres éléments */
+        }
+
+        .emoji {
+            font-size: 3rem;
+            /* Augmenté de 2rem à 3rem */
+            margin: 0 15px;
+            /* Augmenté de 10px à 15px */
+            transition: font-size 0.3s, transform 0.3s;
+        }
+
+        /* Styles du slider */
+        .slider {
+            -webkit-appearance: none;
+            /* Supprimer le style par défaut pour Chrome, Safari, Edge */
+            appearance: none;
+            width: 100%;
+            height: 15px;
+            /* Augmenté de 10px à 15px */
+            border-radius: 7.5px;
+            /* Ajusté pour le nouvel height */
+            background: linear-gradient(to right, red, green);
+            outline: none;
+            margin: 0;
+            padding: 0;
+            transition: background 0.3s;
+            position: relative;
+            pointer-events: none;
+            /* Empêcher toute interaction utilisateur */
+        }
+
+        .slider:hover {
+            background: linear-gradient(to right, darkred, darkgreen);
+        }
+
+        /* Pointeur du slider personnalisé pour Webkit (Chrome, Safari, Edge) */
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 40px;
+            /* Augmenté de 30px à 40px */
+            height: 40px;
+            /* Augmenté de 30px à 40px */
+            background: url('textures/cursor.png') no-repeat center;
+            background-size: contain;
+            cursor: pointer;
+            margin-top: -50px;
+            /* Centrer verticalement le curseur (40px height) */
+            /* 15px height slider / 2 - 40px height thumb / 2 = -12.5px */
+            border: none;
+            /* Supprimer toute bordure par défaut */
+            /* Réactiver les événements pour le curseur */
+        }
+
+        /* Pointeur du slider personnalisé pour Firefox */
+        .slider::-moz-range-thumb {
+            width: 40px;
+            /* Augmenté de 30px à 40px */
+            height: 40px;
+            /* Augmenté de 30px à 40px */
+            background: url('textures/cursor.png') no-repeat center;
+            background-size: contain;
+            cursor: pointer;
+            border: none;
+            /* Supprimer toute bordure par défaut */
+            /* Alignement vertical similaire à Webkit */
+            transform: translateY(-12.5px);
+            /* Ajusté pour la nouvelle taille */
+            /* Optionnel : ajouter une légère ombre pour un meilleur contraste */
+            box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+            pointer-events: all;
+            /* Réactiver les événements pour le curseur */
+        }
+
+        /* Pour Firefox : supprimer le contour lors du focus */
+        .slider::-moz-focus-outer {
+            border: 0;
+        }
+
+        /* Styles supplémentaires pour l'accessibilité et l'apparence */
+        .slider:focus {
+            outline: none;
+        }
+
+        /* Styles pour l'écran de fin de jeu */
+        #gameOverScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            /* Fond légèrement différent */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 2000;
+            /* Au-dessus de tout */
+        }
+
+        #gameOverContent {
+            text-align: center;
+            color: white;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        .game-over-emoji {
+            font-size: 5rem;
+            margin-bottom: 20px;
+            opacity: 0;
+            /* Invisible au départ */
+            transform: translateY(50px);
+            /* Position initiale pour l'animation */
+        }
+
+        .game-over-message {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            opacity: 0;
+            /* Invisible au départ */
+        }
+
+        .game-over-timer {
+            font-size: 1.5rem;
+            opacity: 0;
+            /* Invisible au départ */
+        }
+
+        /* --- Fin des Styles du Slider --- */
     </style>
 </head>
 
 <body>
-    <div id="instructions">Cliquez pour démarrer</div>
+    <div id="instructions">
+        <!-- Instructions de contrôle -->
+        <div class="instruction-item">
+            <span class="instruction-text">Attraper les plateaux avec clic droit</span>
+            <span class="instruction-icon">🔄</span>
+            <!-- Remplacez l'emoji 🔄 par votre PNG si nécessaire -->
+            <!-- <span class="instruction-icon"><img src="path/to/clic-droit.png" alt="Clic Droit" width="40" height="40"></span> -->
+        </div>
+        <div class="instruction-item">
+            <span class="instruction-text">Se déplacer avec ZQSD</span>
+            <span class="instruction-icon">🕹️</span>
+            <!-- Remplacez l'emoji 🕹️ par votre PNG si nécessaire -->
+            <!-- <span class="instruction-icon"><img src="path/to/zqsd.png" alt="ZQSD" width="40" height="40"></span> -->
+        </div>
+
+        <!-- Description du jeu -->
+        <p class="game-description">
+            Devenez le héros silencieux d’un lycée en crise nutritionnelle. En tant que cantinier, vous vous souciez de la santé des élèves. C'est pourquoi vous n'hésitez pas à jeter à la poubelle les plateaux mauvais pour maintenir la bonne santé des élèves. Un conseil soyez rapide !
+        </p>
+
+        <!-- Bouton de démarrage -->
+        <button id="start-button">Cliquez pour démarrer</button>
+    </div>
     <div id="crosshair"></div> <!-- Ajout du crosshair -->
-    <div id="unhealthyCount"
-        style="position: absolute; top: 10px; left: 10px; color: white; font-family: Arial, sans-serif; z-index: 1000;">
-        Unhealthy Count: 0</div>
+
+    <!-- Remplacement du Div #healthyCount par le Slider -->
+    <div class="slider-container">
+        <span class="emoji" id="leftEmoji">😈</span>
+        <input type="range" min="0" max="100" value="50" class="slider" id="healthySlider" disabled>
+        <span class="emoji" id="rightEmoji">😎</span>
+    </div>
+
+    <!-- Écran de fin de jeu -->
+    <div id="gameOverScreen" style="display: none;">
+        <div id="gameOverContent">
+            <span id="gameOverEmoji" class="game-over-emoji"></span>
+            <h1 id="gameOverMessage" class="game-over-message"></h1>
+            <p id="gameOverTimer" class="game-over-timer"></p>
+        </div>
+    </div>
+
+
+    <!-- Script Three.js et autres scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/cannon@0.6.2/build/cannon.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three/examples/js/loaders/GLTFLoader.js"></script>
+
+    <!-- --- Début des Scripts du Slider --- -->
+    <!-- Inclusion de GSAP via CDN sans l'attribut integrity -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js" crossorigin="anonymous"
+        referrerpolicy="no-referrer"></script>
     <script>
-        // Pour pas oublier, il faut que je crée un générateur de plateau et. Et ensuite ? Ensuite Une classe générateur de plateau on. Ensuite, il faut que je fasse en sorte que les choses qui peuvent être upgradeable sont la distance pour attraper un objet et aussi. Il faut savoir que en fait, les plateaux auront un indice de mauvaise bouffe et plus on avance Plus les plateaux auront condense à être dans la mauvaise bouffe et avoir un indice élevé de mauvaise bouffe. Et du coup, le joueur devra essayer de de vu qu'il pourra pas attraper tous les plateaux, il devra attraper les plateaux qu'ils ont le plus gros indice de mauvaise bouffe. Ensuite  La vitesse de déplacement sera aussi un élément qui sera upgradable
+        let previousValue = 0; // Variable pour stocker la valeur précédente du slider
+
+        // Fonction pour mettre à jour le slider en fonction du healthyCount
+        function updateHealthySlider(count) {
+            const slider = document.getElementById('healthySlider');
+            slider.value = count;
+
+            // Calculer les tailles des emojis
+            const leftEmoji = document.getElementById('leftEmoji');
+            const rightEmoji = document.getElementById('rightEmoji');
+
+            // Normaliser la valeur du slider (supposons min=-100, max=100)
+            // La taille varie de 1rem à 4rem
+            const leftSize = 4 - ((count + 100) / 200) * 3; // de 4rem à 1rem
+            const rightSize = 1 + ((count + 100) / 200) * 3; // de 1rem à 4rem
+
+            // Utiliser GSAP pour animer les changements de taille
+            gsap.to(leftEmoji, { duration: 0.3, fontSize: `${leftSize}rem` });
+            gsap.to(rightEmoji, { duration: 0.3, fontSize: `${rightSize}rem` });
+
+            // Détecter la direction du changement pour animer les emojis
+            if (count > previousValue) {
+                // Valeur a augmenté, animer l'emoji de droite
+                gsap.fromTo(rightEmoji, { scale: 1 }, { scale: 2, duration: 0.2, yoyo: true, repeat: 1 });
+            } else if (count < previousValue) {
+                // Valeur a diminué, animer l'emoji de gauche
+                gsap.fromTo(leftEmoji, { scale: 1 }, { scale: 2, duration: 0.2, yoyo: true, repeat: 1 });
+            }
+            previousValue = count;
+        }
+
+        // Exposer la fonction globalement pour qu'elle puisse être appelée depuis d'autres classes
+        window.updateHealthySlider = updateHealthySlider;
+    </script>
+    <script>
+        // Pour pas oublier, il faut que je crée un générateur de plateau et. Et ensuite ? Ensuite Une classe générateur de plateau on. Ensuite, il faut que je fasse en sorte que les choses qui peuvent être upgradeable sont la distance pour attraper un objet et aussi. Il faut savoir que en fait, les plateaux auront un indice de mauvaise bouffe et plus on avance Plus les plateaux auront condense à être dans la mauvaise bouffe et avoir un indice élevé de mauvaise bouffe. Et du coup, le joueur devra essayer de de vu qu'il pourra pas attraper tous les plateaux, il devra attraper les plateaux qu'ils ont le plus gros indice de mauvaise bouffe. Ensuite La vitesse de déplacement sera aussi un élément qui sera upgradable
         // Définir les groupes de collision
         const COLLISION_GROUP_PLAYER = 1 << 0; // 1
         const COLLISION_GROUP_OBJECT = 1 << 1; // 2
@@ -343,6 +627,7 @@
             }
 
             addColliderHelper() {
+                if (!this.game.debug) return;
                 if (!this.body || !this.body.shapes[0]) return;
 
                 let geometry;
@@ -407,12 +692,11 @@
             }
         }
 
-        // Mise à jour de la classe Tray pour charger des modèles GLB de nourriture dynamiquement
         class Tray extends GameObject {
             constructor(options) {
                 super(options);
                 this.type = 'tray'; // Définir le type plateau
-                this.UnhealthyCount = 0; // Compteur de malbouffe
+                this.healthyCount = 0; // Compteur de malbouffe
                 this.healthyFoodModels = [
                     'models/foods/soda.glb',
                     'models/foods/apple.glb',
@@ -433,11 +717,9 @@
                     'models/foods/icecream.glb',
                     'models/foods/chocolate.glb',
                     'models/foods/cupcake.glb',
-                    
                     // Ajoutez les chemins vers vos modèles de nourriture non saine ici
                 ];
 
-                this.foodModels = [...this.healthyFoodModels, ...this.unhealthyFoodModels];
                 this.initFood();
             }
 
@@ -456,13 +738,22 @@
                 const shuffled = positions.sort(() => 0.5 - Math.random()).slice(0, count);
 
                 shuffled.forEach(position => {
-                    const modelPath = this.foodModels[Math.floor(Math.random() * this.foodModels.length)];
+                    // Générer un nombre aléatoire entre 0 et 1
+                    const randomValue = Math.random();
+                    let modelPath;
 
-                    const isUnhealthy = this.unhealthyFoodModels.includes(modelPath);
-                    if (isUnhealthy) {
-                        this.UnhealthyCount += 1;
+                    // Sélectionner la nourriture en fonction de la difficulté
+                    if (randomValue < 1 - this.game.difficulty) {
+                        // Plus de chances de choisir un modèle sain si la difficulté est basse
+                        modelPath = this.healthyFoodModels[Math.floor(Math.random() * this.healthyFoodModels.length)];
+                        this.healthyCount++; // Incrémenter le compteur pour la nourriture saine
+                    } else {
+                        // Plus de chances de choisir un modèle malsain si la difficulté est haute
+                        modelPath = this.unhealthyFoodModels[Math.floor(Math.random() * this.unhealthyFoodModels.length)];
+                        this.healthyCount--; // Incrémenter le compteur pour la malbouffe
                     }
 
+                    // Charger le modèle
                     loader.load(modelPath, gltf => {
                         const food = gltf.scene;
                         food.position.set(position.x, position.y, position.z);
@@ -481,14 +772,23 @@
                 this.game.dynamicObjects.forEach(obj => {
                     const body = obj.body;
                     if (this.isInContact(body)) {
-                        document.getElementById('unhealthyCount').textContent = `Unhealthy Count: ${this.game.player.UnhealthyCount}`;
-                        //verifier si l'objet est de type tray et si oui, recuperer la variable de malbouffe et detruire le tray
+                        // Mettre à jour le healthyCount
                         if (obj.type === 'tray') {
-                            // Detruire le tray
+                            // Ajouter la variable de nourriture saine du plateau
+                            this.game.player.healthyCount += obj.healthyCount;
+
+                            // Mettre à jour le slider
+                            window.updateHealthySlider(this.game.player.healthyCount);
+                            // Vérifier les conditions de fin de jeu
+                            if (this.game.player.healthyCount <= 0) {
+                                this.game.gameOverFunction(false); // Défaite
+                            } else if (this.game.player.healthyCount >= 100) {
+                                this.game.gameOverFunction(true); // Victoire
+                            }
+
+                            // Détruire le tray
                             this.scene.remove(obj.mesh);
                             this.world.removeBody(obj.body);
-                            // Ajouter la variable de malbouffe au joueur
-                            this.game.player.UnhealthyCount += obj.UnhealthyCount;
                         }
                     }
                 });
@@ -508,22 +808,91 @@
         class Bin extends GameObject {
             constructor(options) {
                 super(options);
+
+                // Accès à l'objet couvercle
+                this.lid = this.game.BinLid;
+
+                // Variables pour l'animation d'ouverture/fermeture
+                this.isAnimating = false;
+                this.targetRotation = 0;  // La rotation cible du couvercle
+                this.openRotation = -Math.PI / 2;  // Rotation de 90° pour ouvrir
+                this.closeRotation = 0;  // Rotation fermée
+
+                // Timer pour fermer le couvercle après ouverture
+                this.closeLidTimer = null;
             }
 
             update() {
                 this.game.dynamicObjects.forEach(obj => {
                     const body = obj.body;
-                    if (this.isInContact(body)) {
-                        if (obj.type === 'tray') {
-                            this.scene.remove(obj.mesh);
-                            this.world.removeBody(obj.body);
-                            const audio = new Audio('sounds/trash.wav');
-                            audio.volume = 0.3;
-                            audio.play();
-                        }
+                    if (this.isInContact(body) && obj.type === 'tray') {
+                        // Supprimer l'objet de la scène et de la physique
+                        this.scene.remove(obj.mesh);
+                        this.world.removeBody(obj.body);
+
+                        // Jouer le son de la poubelle
+                        const audio = new Audio('sounds/trash.wav');
+                        audio.volume = 0.3;
+                        audio.play();
+
+                        // Déclencher l'animation d'ouverture
+                        this.toggleLid();
                     }
                 });
+
+                // Si l'animation est active, mettre à jour la rotation du couvercle
+                if (this.isAnimating) {
+                    this.animateLid();
+                }
+
                 super.update();
+            }
+
+            toggleLid() {
+                // Basculer entre l'ouverture et la fermeture
+                if (this.isAnimating) return; // Empêcher de basculer pendant une animation
+
+                this.targetRotation = (this.lid.transform.rotation.x === this.closeRotation) ? this.openRotation : this.closeRotation;
+                this.isAnimating = true; // Activer l'animation
+
+                // Si on ouvre le couvercle, lancer un timer pour le refermer après 2 secondes
+                if (this.targetRotation === this.openRotation) {
+                    // Effacer tout timer existant pour éviter les fermetures multiples
+                    if (this.closeLidTimer) {
+                        clearTimeout(this.closeLidTimer);
+                    }
+
+                    this.closeLidTimer = setTimeout(() => {
+                        this.toggleLid(); // Refermer le couvercle
+                    }, 500); // 2000 ms = 2 secondes
+                } else {
+                    // Si on ferme le couvercle, effacer le timer de fermeture si nécessaire
+                    if (this.closeLidTimer) {
+                        clearTimeout(this.closeLidTimer);
+                        this.closeLidTimer = null;
+                    }
+                }
+            }
+
+            animateLid() {
+                // Interpoler la rotation actuelle vers la rotation cible
+                this.lid.transform.rotation.x += (this.targetRotation - this.lid.transform.rotation.x) * 0.1;
+
+                // Appliquer les transformations au maillage visuel
+                this.lid.applyTransformations();
+
+                // Si proche de la cible, arrêter l'animation
+                if (Math.abs(this.targetRotation - this.lid.transform.rotation.x) < 0.01) {
+                    this.lid.transform.rotation.x = this.targetRotation;  // Fixer à la cible
+                    this.lid.applyTransformations(); // Assurer que la rotation finale est appliquée
+                    this.isAnimating = false;  // Désactiver l'animation
+
+                    // Si on vient de fermer le couvercle, effacer le timer
+                    if (this.targetRotation === this.closeRotation && this.closeLidTimer) {
+                        clearTimeout(this.closeLidTimer);
+                        this.closeLidTimer = null;
+                    }
+                }
             }
 
             isInContact(body) {
@@ -632,7 +1001,7 @@
                 this.scene.add(this.cameraGroup);
 
                 // Initialiser le joueur
-                this.UnhealthyCount = 0;
+                this.healthyCount = 50;
 
                 // Corps physique du joueur
                 this.playerBody = new CANNON.Body({
@@ -681,13 +1050,22 @@
                 document.addEventListener('mousedown', (event) => {
                     if (event.button === 0) { // Clic gauche
                         this.tryGrabObject();
+                    } else if (event.button === 2) { // Clic droit
+                        // Implémenter l'action spécifique pour le clic droit si nécessaire
+                        // Par exemple, lancer un objet ou une autre action
+                        this.tryGrabObject(); // Exemple : utiliser le clic droit pour attraper
                     }
                 });
 
                 document.addEventListener('mouseup', (event) => {
-                    if (event.button === 0) { // Clic gauche
+                    if (event.button === 0 || event.button === 2) { // Clic gauche ou droit
                         this.ungrabObject();
                     }
+                });
+
+                // Empêcher le menu contextuel lors du clic droit
+                document.addEventListener('contextmenu', (event) => {
+                    event.preventDefault();
                 });
             }
 
@@ -745,7 +1123,7 @@
                 const mouse = new THREE.Vector2(0, 0); // Centre de l'écran
 
                 raycaster.setFromCamera(mouse, this.camera);
-                raycaster.far = 2.5; // Limiter la distance de grab à 1 mètre
+                raycaster.far = 2.5; // Limiter la distance de grab à 2.5 unités
 
                 // Collecte de tous les maillages qui pourraient être attrapés
                 const objectsToIntersect = [];
@@ -774,7 +1152,6 @@
                         // Attacher le maillage à la caméra
                         this.attachMeshToCamera(this.grabbedMesh);
 
-                        console.log('Objet attrapé:', object);
                         break;
                     }
                 }
@@ -793,8 +1170,6 @@
                 if (this.grabbedMesh.userData.gameObject) {
                     this.grabbedMesh.userData.gameObject.ungrab();
                 }
-
-                console.log('Objet libéré');
 
                 // Réinitialiser les références
                 this.grabbedObject = null;
@@ -856,6 +1231,11 @@
                 this.inputManager = new InputManager();
                 this.dynamicObjects = [];
                 this.conveyorBelts = [];
+                this.BinLid = null;
+                this.debug = false;
+                this.gameOver = false;
+                this.gameStartTime = null;
+                this.gameEndTime = null;
 
                 this.initInstructions();
                 this.initWorld();
@@ -887,6 +1267,15 @@
 
                 // Définir la vitesse maximale des tapis roulants
                 const vitesseMax = 4;
+
+                // Initialiser la difficulté
+                this.difficulty = 0.3; // Niveau de difficulté initial (0 = uniquement nourriture saine)
+
+                // Définir l'incrément de difficulté
+                const incrementDifficulty = 0.1; // Ajustement de la difficulté à chaque exécution
+
+                // max difficulty
+                const maxDifficulty = 1;
 
                 this.trayGenerator = new IntervalExecutor(() => {
                     new Tray({
@@ -929,15 +1318,77 @@
 
                     // Mettre à jour l'intervalle du générateur de plateaux
                     this.trayGenerator.setIntervalTime(this.trayGenerationInterval);
-                }, 1000);
+
+                    // Augmenter progressivement la difficulté jusqu'à un maximum de 1
+                    this.difficulty = Math.min(this.difficulty + incrementDifficulty, maxDifficulty);
+                }, 15000);
             }
 
             initInstructions() {
                 const instructions = document.getElementById('instructions');
-                instructions.addEventListener('click', () => {
+                const startButton = document.getElementById('start-button');
+
+                const startGame = () => {
                     this.sceneManager.renderer.domElement.requestPointerLock();
                     instructions.style.display = 'none';
+                    this.gameStartTime = Date.now(); // Enregistrer le temps de démarrage
+                };
+
+                startButton.addEventListener('click', (event) => {
+                    event.stopPropagation(); // Empêcher la propagation du clic au conteneur
+                    startGame();
                 });
+
+                instructions.addEventListener('click', () => {
+                    startGame();
+                });
+
+                // Écouter les changements de Pointer Lock
+                document.addEventListener('pointerlockchange', () => {
+                    if (document.pointerLockElement !== this.sceneManager.renderer.domElement) {
+                        instructions.style.display = 'flex';
+                    }
+                });
+
+                // Optionnel : Écouter les changements de visibilité de la page
+                document.addEventListener('visibilitychange', () => {
+                    if (document.visibilityState === 'visible' && document.pointerLockElement !== this.sceneManager.renderer.domElement) {
+                        instructions.style.display = 'flex';
+                    }
+                });
+            }
+
+
+            gameOverFunction(hasWon) {
+                if (this.gameOver) return; // Empêcher plusieurs déclenchements
+
+                this.gameOver = true;
+                this.gameEndTime = Date.now();
+                const elapsedTime = Math.floor((this.gameEndTime - this.gameStartTime) / 1000); // Temps en secondes
+
+                const gameOverScreen = document.getElementById('gameOverScreen');
+                const gameOverEmoji = document.getElementById('gameOverEmoji');
+                const gameOverMessage = document.getElementById('gameOverMessage');
+                const gameOverTimer = document.getElementById('gameOverTimer');
+
+                // Définir l'emoji et le message en fonction de la victoire ou de la défaite
+                if (hasWon) {
+                    gameOverEmoji.textContent = '🏆'; // Emoji de victoire
+                    gameOverMessage.textContent = 'Vous avez gagné !';
+                } else {
+                    gameOverEmoji.textContent = '💀'; // Emoji de défaite
+                    gameOverMessage.textContent = 'Vous avez perdu !';
+                }
+
+                gameOverTimer.textContent = `Temps écoulé : ${elapsedTime} secondes`;
+
+                // Afficher l'écran de fin de jeu
+                gameOverScreen.style.display = 'flex';
+
+                // Animer les éléments avec GSAP
+                gsap.to('#gameOverEmoji', { duration: 1, opacity: 1, ease: "bounce.out" });
+                gsap.to('#gameOverMessage', { duration: 1, opacity: 1, delay: 0.5 });
+                gsap.to('#gameOverTimer', { duration: 1, opacity: 1, delay: 1 });
             }
 
             initWorld() {
@@ -1185,7 +1636,7 @@
                     isDynamic: true,
                     transform: {
                         position: { x: 4, y: 1.5, z: -9.4 },
-                        size: { x: 0.1, y: 2, z:2 },
+                        size: { x: 0.1, y: 2, z: 2 },
                         rotation: { x: 0, y: Math.PI / 2, z: 0 }
                     },
                     physics: {
@@ -1198,10 +1649,25 @@
                     },
                     collider: {
                         type: 'box',
-                        size: { x: 0.1, y: 2, z:2 },
+                        size: { x: 0.1, y: 2, z: 2 },
                     }
                 });
-
+                // Couvercle de la poubelle
+                this.BinLid = new GameObject({
+                    scene: this.sceneManager.scene,
+                    world: this.physicsManager.world,
+                    game: this,
+                    transform: {
+                        position: { x: -0.5, y: 1.60, z: -1.97 },
+                        size: { x: 1.2, y: 0.05, z: 0.7 },
+                        rotation: { x: 0, y: 0, z: 0 }
+                    },
+                    appearance: {
+                        color: 0x969696,
+                        shapeType: 'box',
+                        opacity: 1
+                    },
+                });
                 // Création d'une poubelle
                 new Bin({
                     scene: this.sceneManager.scene,

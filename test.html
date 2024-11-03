@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contrôle de l'animation d'un emoji</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            font-family: Arial, sans-serif;
+        }
+        #emoji {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Contrôle de l'animation d'un emoji</h1>
+    
+    <!-- Emoji animé au départ -->
+    <img
+        id="emoji"
+        src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Microsoft-Teams-Animated-Emojis/master/Emojis/Smilies/Cat%20with%20Tears%20of%20Joy.png"
+        alt="Cat with Tears of Joy"
+        width="100"
+        height="100"
+    />
+
+    <!-- Boutons pour démarrer et arrêter l'animation -->
+    <button onclick="stopAnimation()">Arrêter l'animation</button>
+    <button onclick="startAnimation()">Démarrer l'animation</button>
+
+    <script>
+        const emoji = document.getElementById('emoji');
+
+        function stopAnimation() {
+            // Remplacez par l'URL d'une image statique (même emoji mais non animé)
+            emoji.src = 'https://images.emojiterra.com/microsoft/fluent-emoji/512px/1f621_flat.png';
+        }
+
+        function startAnimation() {
+            // Remet l'URL de l'emoji animé
+            emoji.src = 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Enraged%20Face.png';
+        }
+    </script>
+
+</html>
