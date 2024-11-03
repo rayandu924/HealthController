@@ -1006,6 +1006,7 @@
             constructor(options) {
                 this.scene = options.scene;
                 this.world = options.world;
+                this.game = options.game;
                 this.renderer = options.renderer;
                 this.input = options.input;
                 this.eventEmitter = options.eventEmitter;
@@ -1040,9 +1041,6 @@
 
                 // Ajout des écouteurs de clic de souris pour le grab/ungrab
                 this.initMouseClick();
-
-                // Ajout d'un helper pour visualiser le corps physique du joueur
-                this.addPlayerHelper();
 
                 // Initialisation du son de déplacement
                 this.movementSound = new Audio('sounds/footsteps.mp3');
@@ -1084,26 +1082,9 @@
                 });
             }
 
-            addPlayerHelper() {
-                // Créer un helper pour visualiser le corps physique du joueur
-                const sphereGeometry = new THREE.SphereGeometry(this.playerBody.shapes[0].radius, 16, 16);
-                const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
-                this.playerHelper = new THREE.Mesh(sphereGeometry, sphereMaterial);
-                this.scene.add(this.playerHelper);
-            }
-
-            updatePlayerHelper() {
-                if (this.playerHelper) {
-                    this.playerHelper.position.copy(this.playerBody.position);
-                }
-            }
-
             update() {
                 this.handleMovement();
                 this.updateCameraPosition();
-
-                // Mise à jour du helper
-                this.updatePlayerHelper();
             }
 
             handleMovement() {
@@ -1258,6 +1239,7 @@
                 this.player = new Player({
                     scene: this.sceneManager.scene,
                     world: this.physicsManager.world,
+                    game: this,
                     renderer: this.sceneManager.renderer,
                     input: this.inputManager,
                     eventEmitter: this.eventEmitter
@@ -1269,22 +1251,13 @@
                 this.animate = this.animate.bind(this);
 
                 // Paramètres pour l'incrément de la vitesse des tapis roulants
-                this.conveyorSpeed = 0.5; // Vitesse initiale (units/s)
+                this.conveyorSpeed = 2; // Vitesse initiale (units/s)
 
                 // Initialiser le générateur de trays avec une intervalle initiale
-                this.trayGenerationInterval = 4000; // Intervalle initial en ms
-
-                // Définir la distance désirée entre les plateaux en unités
-                const distanceDesiree = 1.5;
-
-                // Définir l'incrément de vitesse des tapis roulants
-                const incrementVitesse = 0.2;
-
-                // Définir la vitesse maximale des tapis roulants
-                const vitesseMax = 4;
+                this.trayGenerationInterval = 1800; // Intervalle initial en ms
 
                 // Initialiser la difficulté
-                this.difficulty = 0.7; // Niveau de difficulté initial (0 = uniquement nourriture saine)
+                this.difficulty = 0.6; // Niveau de difficulté initial (0 = uniquement nourriture saine)
 
                 this.trayGenerator = new IntervalExecutor(() => {
                     new Tray({
@@ -1311,23 +1284,6 @@
                         }
                     });
                 }, this.trayGenerationInterval);
-
-                // Mettre à jour la vitesse des tapis roulants et l'intervalle de génération des plateaux pour maintenir une distance constante
-                new IntervalExecutor(() => {
-                    // Augmenter la vitesse des tapis roulants
-                    this.conveyorSpeed = Math.min(this.conveyorSpeed + incrementVitesse, vitesseMax);
-
-                    // Mettre à jour la vitesse de tous les tapis roulants
-                    this.conveyorBelts.forEach(tapis => {
-                        tapis.setSpeed(this.conveyorSpeed);
-                    });
-
-                    // Calculer le nouvel intervalle de génération des plateaux pour maintenir la distance désirée
-                    this.trayGenerationInterval = (distanceDesiree / this.conveyorSpeed) * 1000; // en ms
-
-                    // Mettre à jour l'intervalle du générateur de plateaux
-                    this.trayGenerator.setIntervalTime(this.trayGenerationInterval);
-                }, 15000);
             }
 
             initInstructions() {
