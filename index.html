@@ -271,7 +271,9 @@
 
         <!-- Description du jeu -->
         <p class="game-description">
-            Devenez le héros silencieux d’un lycée en crise nutritionnelle. En tant que cantinier, vous vous souciez de la santé des élèves. C'est pourquoi vous n'hésitez pas à jeter à la poubelle les plateaux mauvais pour maintenir la bonne santé des élèves. Un conseil soyez rapide !
+            Devenez le héros silencieux d’un lycée en crise nutritionnelle. En tant que cantinier, vous vous souciez de
+            la santé des élèves. C'est pourquoi vous n'hésitez pas à jeter à la poubelle les plateaux mauvais pour
+            maintenir la bonne santé des élèves. Un conseil soyez rapide !
         </p>
 
         <!-- Bouton de démarrage -->
@@ -317,10 +319,10 @@
             const leftEmoji = document.getElementById('leftEmoji');
             const rightEmoji = document.getElementById('rightEmoji');
 
-            // Normaliser la valeur du slider (supposons min=-100, max=100)
-            // La taille varie de 1rem à 4rem
-            const leftSize = 4 - ((count + 100) / 200) * 3; // de 4rem à 1rem
-            const rightSize = 1 + ((count + 100) / 200) * 3; // de 1rem à 4rem
+            // Normaliser la valeur du slider (min=0, max=100)
+            // La taille varie de 7rem à 2rem
+            const leftSize = 7 - (count / 100) * 5; // de 7rem à 2rem
+            const rightSize = 4 - (count / 100) * 3; // de 4rem à 1rem
 
             // Utiliser GSAP pour animer les changements de taille
             gsap.to(leftEmoji, { duration: 0.3, fontSize: `${leftSize}rem` });
@@ -696,14 +698,18 @@
             constructor(options) {
                 super(options);
                 this.type = 'tray'; // Définir le type plateau
-                this.healthyCount = 0; // Compteur de malbouffe
+                this.healthyCount = 0; // Compteur de bonne nourriture
+                this.unhealthyCount = 0; // Compteur de mauvaise nourriture
+
                 this.healthyFoodModels = [
-                    'models/foods/soda.glb',
                     'models/foods/apple.glb',
                     'models/foods/pineapple.glb',
                     'models/foods/banana.glb',
                     'models/foods/strawberries.glb',
                     'models/foods/tomato.glb',
+                    'models/foods/water.glb',
+                    'models/foods/egg.glb',
+                    'models/foods/chicken.glb',
                     // Ajoutez les chemins vers vos modèles de nourriture saine ici
                 ];
 
@@ -713,10 +719,10 @@
                     'models/foods/chips.glb',
                     'models/foods/pizza.glb',
                     'models/foods/donut.glb',
-                    'models/foods/egg.glb',
                     'models/foods/icecream.glb',
                     'models/foods/chocolate.glb',
                     'models/foods/cupcake.glb',
+                    'models/foods/soda.glb',
                     // Ajoutez les chemins vers vos modèles de nourriture non saine ici
                 ];
 
@@ -737,21 +743,29 @@
                 const count = Math.floor(Math.random() * 6) + 1;
                 const shuffled = positions.sort(() => 0.5 - Math.random()).slice(0, count);
 
-                shuffled.forEach(position => {
-                    // Générer un nombre aléatoire entre 0 et 1
-                    const randomValue = Math.random();
-                    let modelPath;
+                // Déterminer le type du plateau en fonction de la difficulté
+                const randomValue = Math.random();
+                let isHealthyTray;
 
-                    // Sélectionner la nourriture en fonction de la difficulté
-                    if (randomValue < 1 - this.game.difficulty) {
-                        // Plus de chances de choisir un modèle sain si la difficulté est basse
-                        modelPath = this.healthyFoodModels[Math.floor(Math.random() * this.healthyFoodModels.length)];
-                        this.healthyCount++; // Incrémenter le compteur pour la nourriture saine
-                    } else {
-                        // Plus de chances de choisir un modèle malsain si la difficulté est haute
-                        modelPath = this.unhealthyFoodModels[Math.floor(Math.random() * this.unhealthyFoodModels.length)];
-                        this.healthyCount--; // Incrémenter le compteur pour la malbouffe
-                    }
+                if (randomValue < 1 - this.game.difficulty) {
+                    isHealthyTray = true; // Plateau sain
+                } else {
+                    isHealthyTray = false; // Plateau malsain
+                }
+
+                if (isHealthyTray) {
+                    this.healthyCount += count;
+                } else {
+                    this.healthyCount -= count;
+                }
+
+                // Sélectionner le tableau de modèles en fonction du type de plateau
+                const selectedFoodModels = isHealthyTray ? this.healthyFoodModels : this.unhealthyFoodModels;
+
+                // Mettre à jour les compteurs en fonction du type de plateau
+                shuffled.forEach(position => {
+                    // Choisir un modèle aléatoire dans le tableau sélectionné
+                    const modelPath = selectedFoodModels[Math.floor(Math.random() * selectedFoodModels.length)];
 
                     // Charger le modèle
                     loader.load(modelPath, gltf => {
@@ -762,6 +776,7 @@
                 });
             }
         }
+
 
         class TrayReceptor extends GameObject {
             constructor(options) {
@@ -1269,13 +1284,7 @@
                 const vitesseMax = 4;
 
                 // Initialiser la difficulté
-                this.difficulty = 0.3; // Niveau de difficulté initial (0 = uniquement nourriture saine)
-
-                // Définir l'incrément de difficulté
-                const incrementDifficulty = 0.1; // Ajustement de la difficulté à chaque exécution
-
-                // max difficulty
-                const maxDifficulty = 1;
+                this.difficulty = 0.7; // Niveau de difficulté initial (0 = uniquement nourriture saine)
 
                 this.trayGenerator = new IntervalExecutor(() => {
                     new Tray({
@@ -1318,9 +1327,6 @@
 
                     // Mettre à jour l'intervalle du générateur de plateaux
                     this.trayGenerator.setIntervalTime(this.trayGenerationInterval);
-
-                    // Augmenter progressivement la difficulté jusqu'à un maximum de 1
-                    this.difficulty = Math.min(this.difficulty + incrementDifficulty, maxDifficulty);
                 }, 15000);
             }
 
