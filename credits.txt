@@ -1,7 +1,4 @@
-Models:
-
-
-Foods :
+Foods Models :
 Fries by Kenney
 Beef Burger by mehreen1919 [CC-BY] via Poly Pizza
 Pizza slice by Poly by Google [CC-BY] via Poly Pizza

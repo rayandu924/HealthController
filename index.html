@@ -23,7 +23,6 @@
             max-width: 600px;
             padding: 20px;
             background: rgba(0, 0, 0, 0.8);
-            /* Fond semi-transparent pour l'écran de démarrage */
             border-radius: 10px;
             text-align: center;
             color: white;
@@ -31,7 +30,6 @@
             user-select: none;
             cursor: pointer;
             z-index: 1500;
-            /* Assurez-vous qu'il est en dessous de gameOverScreen */
             display: flex;
             flex-direction: column;
             gap: 15px;
@@ -52,7 +50,6 @@
 
         .instruction-icon {
             font-size: 2rem;
-            /* Si vous utilisez des PNG, ajustez la taille en conséquence */
             width: 40px;
             height: 40px;
             display: flex;
@@ -60,7 +57,6 @@
             justify-content: center;
         }
 
-        /* Style du bouton de démarrage */
         #start-button {
             padding: 10px 20px;
             font-size: 1.5rem;
@@ -76,13 +72,11 @@
             background-color: #218838;
         }
 
-        /* Style du paragraphe de description */
         .game-description {
             font-size: 1rem;
             padding: 0 20px;
         }
 
-        /* Style du crosshair */
         #crosshair {
             position: absolute;
             top: 50%;
@@ -90,54 +84,37 @@
             width: 10px;
             height: 10px;
             margin-left: -5px;
-            /* Pour centrer horizontalement */
             margin-top: -5px;
-            /* Pour centrer verticalement */
             background-color: white;
             border: 2px solid black;
             border-radius: 50%;
             pointer-events: none;
-            /* Permet de cliquer à travers le crosshair */
             z-index: 1000;
         }
 
-        /* --- Début des Styles du Slider --- */
-
         .slider-container {
             position: absolute;
-            /* Positionnement absolu pour placer le slider sur l'écran */
             bottom: 10px;
-            /* Positionner le slider en bas */
             left: 50%;
-            /* Centrer horizontalement */
             transform: translateX(-50%);
-            /* Centrer précisément */
             display: flex;
             align-items: center;
             width: 400px;
-            /* Augmenté de 300px à 400px */
             z-index: 1000;
-            /* Assurer que le slider est au-dessus des autres éléments */
         }
 
         .emoji {
             font-size: 3rem;
-            /* Augmenté de 2rem à 3rem */
             margin: 0 15px;
-            /* Augmenté de 10px à 15px */
             transition: font-size 0.3s, transform 0.3s;
         }
 
-        /* Styles du slider */
         .slider {
             -webkit-appearance: none;
-            /* Supprimer le style par défaut pour Chrome, Safari, Edge */
             appearance: none;
             width: 100%;
             height: 15px;
-            /* Augmenté de 10px à 15px */
             border-radius: 7.5px;
-            /* Ajusté pour le nouvel height */
             background: linear-gradient(to right, red, green);
             outline: none;
             margin: 0;
@@ -145,63 +122,44 @@
             transition: background 0.3s;
             position: relative;
             pointer-events: none;
-            /* Empêcher toute interaction utilisateur */
         }
 
         .slider:hover {
             background: linear-gradient(to right, darkred, darkgreen);
         }
 
-        /* Pointeur du slider personnalisé pour Webkit (Chrome, Safari, Edge) */
         .slider::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
             width: 40px;
-            /* Augmenté de 30px à 40px */
             height: 40px;
-            /* Augmenté de 30px à 40px */
             background: url('textures/cursor.png') no-repeat center;
             background-size: contain;
             cursor: pointer;
             margin-top: -50px;
-            /* Centrer verticalement le curseur (40px height) */
-            /* 15px height slider / 2 - 40px height thumb / 2 = -12.5px */
             border: none;
-            /* Supprimer toute bordure par défaut */
-            /* Réactiver les événements pour le curseur */
         }
 
-        /* Pointeur du slider personnalisé pour Firefox */
         .slider::-moz-range-thumb {
             width: 40px;
-            /* Augmenté de 30px à 40px */
             height: 40px;
-            /* Augmenté de 30px à 40px */
             background: url('textures/cursor.png') no-repeat center;
             background-size: contain;
             cursor: pointer;
             border: none;
-            /* Supprimer toute bordure par défaut */
-            /* Alignement vertical similaire à Webkit */
             transform: translateY(-12.5px);
-            /* Ajusté pour la nouvelle taille */
-            /* Optionnel : ajouter une légère ombre pour un meilleur contraste */
             box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
             pointer-events: all;
-            /* Réactiver les événements pour le curseur */
         }
 
-        /* Pour Firefox : supprimer le contour lors du focus */
         .slider::-moz-focus-outer {
             border: 0;
         }
 
-        /* Styles supplémentaires pour l'accessibilité et l'apparence */
         .slider:focus {
             outline: none;
         }
 
-        /* Styles pour l'écran de fin de jeu */
         #gameOverScreen {
             position: absolute;
             top: 0;
@@ -209,13 +167,11 @@
             width: 100%;
             height: 100%;
             background: rgba(0, 0, 0, 0.85);
-            /* Fond légèrement différent */
             display: flex;
             justify-content: center;
             align-items: center;
             flex-direction: column;
             z-index: 2000;
-            /* Au-dessus de tout */
         }
 
         #gameOverContent {
@@ -231,64 +187,45 @@
             font-size: 5rem;
             margin-bottom: 20px;
             opacity: 0;
-            /* Invisible au départ */
             transform: translateY(50px);
-            /* Position initiale pour l'animation */
         }
 
         .game-over-message {
             font-size: 2.5rem;
             margin-bottom: 10px;
             opacity: 0;
-            /* Invisible au départ */
         }
 
         .game-over-timer {
             font-size: 1.5rem;
             opacity: 0;
-            /* Invisible au départ */
         }
-
-        /* --- Fin des Styles du Slider --- */
     </style>
 </head>
 
 <body>
     <div id="instructions">
-        <!-- Instructions de contrôle -->
         <div class="instruction-item">
             <span class="instruction-text">Attraper les plateaux avec clic droit</span>
             <span class="instruction-icon">🔄</span>
-            <!-- Remplacez l'emoji 🔄 par votre PNG si nécessaire -->
-            <!-- <span class="instruction-icon"><img src="path/to/clic-droit.png" alt="Clic Droit" width="40" height="40"></span> -->
         </div>
         <div class="instruction-item">
             <span class="instruction-text">Se déplacer avec ZQSD</span>
             <span class="instruction-icon">🕹️</span>
-            <!-- Remplacez l'emoji 🕹️ par votre PNG si nécessaire -->
-            <!-- <span class="instruction-icon"><img src="path/to/zqsd.png" alt="ZQSD" width="40" height="40"></span> -->
         </div>
-
-        <!-- Description du jeu -->
         <p class="game-description">
             Devenez le héros silencieux d’un lycée en crise nutritionnelle. En tant que cantinier, vous vous souciez de
             la santé des élèves. C'est pourquoi vous n'hésitez pas à jeter à la poubelle les plateaux mauvais pour
             maintenir la bonne santé des élèves. Un conseil soyez rapide !
         </p>
-
-        <!-- Bouton de démarrage -->
         <button id="start-button">Cliquez pour démarrer</button>
     </div>
-    <div id="crosshair"></div> <!-- Ajout du crosshair -->
-
-    <!-- Remplacement du Div #healthyCount par le Slider -->
+    <div id="crosshair"></div>
     <div class="slider-container">
         <span class="emoji" id="leftEmoji">😈</span>
         <input type="range" min="0" max="100" value="50" class="slider" id="healthySlider" disabled>
         <span class="emoji" id="rightEmoji">😎</span>
     </div>
-
-    <!-- Écran de fin de jeu -->
     <div id="gameOverScreen" style="display: none;">
         <div id="gameOverContent">
             <span id="gameOverEmoji" class="game-over-emoji"></span>
@@ -296,59 +233,39 @@
             <p id="gameOverTimer" class="game-over-timer"></p>
         </div>
     </div>
-
-
-    <!-- Script Three.js et autres scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/cannon@0.6.2/build/cannon.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three/examples/js/loaders/GLTFLoader.js"></script>
-
-    <!-- --- Début des Scripts du Slider --- -->
-    <!-- Inclusion de GSAP via CDN sans l'attribut integrity -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js" crossorigin="anonymous"
-        referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script>
-        let previousValue = 0; // Variable pour stocker la valeur précédente du slider
+        let previousValue = 0;
 
-        // Fonction pour mettre à jour le slider en fonction du healthyCount
         function updateHealthySlider(count) {
             const slider = document.getElementById('healthySlider');
             slider.value = count;
 
-            // Calculer les tailles des emojis
             const leftEmoji = document.getElementById('leftEmoji');
             const rightEmoji = document.getElementById('rightEmoji');
 
-            // Normaliser la valeur du slider (min=0, max=100)
-            // La taille varie de 7rem à 2rem
-            const leftSize = 7 - (count / 100) * 5; // de 7rem à 2rem
-            const rightSize = 4 - (count / 100) * 3; // de 4rem à 1rem
+            const leftSize = 7 - (count / 100) * 5;
+            const rightSize = 4 - (count / 100) * 3;
 
-            // Utiliser GSAP pour animer les changements de taille
             gsap.to(leftEmoji, { duration: 0.3, fontSize: `${leftSize}rem` });
             gsap.to(rightEmoji, { duration: 0.3, fontSize: `${rightSize}rem` });
 
-            // Détecter la direction du changement pour animer les emojis
             if (count > previousValue) {
-                // Valeur a augmenté, animer l'emoji de droite
                 gsap.fromTo(rightEmoji, { scale: 1 }, { scale: 2, duration: 0.2, yoyo: true, repeat: 1 });
             } else if (count < previousValue) {
-                // Valeur a diminué, animer l'emoji de gauche
                 gsap.fromTo(leftEmoji, { scale: 1 }, { scale: 2, duration: 0.2, yoyo: true, repeat: 1 });
             }
             previousValue = count;
         }
 
-        // Exposer la fonction globalement pour qu'elle puisse être appelée depuis d'autres classes
         window.updateHealthySlider = updateHealthySlider;
-    </script>
-    <script>
-        // Pour pas oublier, il faut que je crée un générateur de plateau et. Et ensuite ? Ensuite Une classe générateur de plateau on. Ensuite, il faut que je fasse en sorte que les choses qui peuvent être upgradeable sont la distance pour attraper un objet et aussi. Il faut savoir que en fait, les plateaux auront un indice de mauvaise bouffe et plus on avance Plus les plateaux auront condense à être dans la mauvaise bouffe et avoir un indice élevé de mauvaise bouffe. Et du coup, le joueur devra essayer de de vu qu'il pourra pas attraper tous les plateaux, il devra attraper les plateaux qu'ils ont le plus gros indice de mauvaise bouffe. Ensuite La vitesse de déplacement sera aussi un élément qui sera upgradable
-        // Définir les groupes de collision
-        const COLLISION_GROUP_PLAYER = 1 << 0; // 1
-        const COLLISION_GROUP_OBJECT = 1 << 1; // 2
 
-        // Gestionnaire des événements
+        const COLLISION_GROUP_PLAYER = 1 << 0;
+        const COLLISION_GROUP_OBJECT = 1 << 1;
+
         class EventEmitter {
             constructor() {
                 this.events = {};
@@ -368,19 +285,11 @@
             }
         }
 
-        // Gestionnaire de la scène Three.js
         class SceneManager {
             constructor() {
                 this.scene = new THREE.Scene();
-                // Ajout d'une lumière directionnelle pour mieux voir les objets
-                //const light = new THREE.DirectionalLight(0xffffff, 1);
-                //light.position.set(5, 10, 7.5);
-                //this.scene.add(light);
-
-                // Ajout d'une lumière ambiante
-                const ambientLight = new THREE.AmbientLight(0xe0e0e0); // lumière douce
+                const ambientLight = new THREE.AmbientLight(0xe0e0e0);
                 this.scene.add(ambientLight);
-
                 this.renderer = new THREE.WebGLRenderer({ antialias: true });
                 this.renderer.setSize(window.innerWidth, window.innerHeight);
                 document.body.appendChild(this.renderer.domElement);
@@ -391,7 +300,6 @@
             }
         }
 
-        // Gestionnaire de la physique Cannon.js
         class PhysicsManager {
             constructor() {
                 this.world = new CANNON.World();
@@ -405,12 +313,10 @@
             }
         }
 
-        // Gestionnaire des entrées utilisateur
         class InputManager {
             constructor() {
                 this.keys = {};
                 this.listeners = {};
-
                 this.initControls();
             }
 
@@ -422,7 +328,6 @@
             onKeyChange(event, isPressed) {
                 const key = event.key.toLowerCase();
                 this.keys[key] = isPressed;
-
                 if (this.listeners[key]) {
                     this.listeners[key].forEach(callback => callback(isPressed));
                 }
@@ -441,14 +346,12 @@
             }
         }
 
-        // Classe représentant un objet du jeu
         class GameObject {
             constructor(options) {
                 this.scene = options.scene;
                 this.world = options.world;
                 this.game = options.game;
 
-                // Fusion des options avec les valeurs par défaut
                 const defaultTransform = {
                     position: { x: 0, y: 0, z: 0 },
                     rotation: { x: 0, y: 0, z: 0 },
@@ -457,9 +360,9 @@
                 const defaultAppearance = {
                     color: 0xffffff,
                     opacity: 1,
-                    texture: null, // Chaque GameObject n'a qu'une seule texture
-                    repeating: false, // Indique si la texture est en répétition
-                    repeatDimensions: { x: 1, y: 1 }, // Dimensions de répétition
+                    texture: null,
+                    repeating: false,
+                    repeatDimensions: { x: 1, y: 1 },
                     shapeType: 'box'
                 };
                 const defaultModel = { path: null };
@@ -474,7 +377,6 @@
                 this.model = Object.assign({}, defaultModel, options.model);
                 this.isDynamic = options.isDynamic ?? defaultIsDynamic;
 
-                // Initialiser la physique et le collider uniquement si fournis
                 this.physics = options.physics ? Object.assign({}, options.physics) : null;
                 if (this.physics) {
                     this.body = new CANNON.Body({
@@ -505,15 +407,12 @@
                     this.body = null;
                 }
 
-                // Charger ou créer le modèle visuel
                 this.initVisual();
 
-                // Ajouter l'objet aux objets dynamiques de la scène
                 if (this.isDynamic) {
                     this.game.dynamicObjects.push(this);
                 }
 
-                // Indique si l'objet est actuellement attrapé
                 this.isGrabbed = false;
             }
 
@@ -538,7 +437,6 @@
                 const { color, opacity, texture, repeating, repeatDimensions, shapeType } = this.appearance;
                 const { size } = this.transform;
 
-                // Création du matériau
                 const materialOptions = {
                     color: color,
                     transparent: opacity < 1,
@@ -557,7 +455,6 @@
 
                 const material = new THREE.MeshStandardMaterial(materialOptions);
 
-                // Création du maillage
                 if (this.model.path) {
                     const loader = new THREE.GLTFLoader();
                     loader.load(this.model.path, (gltf) => {
@@ -566,7 +463,6 @@
                         this.applyTransformations();
                         this.scene.add(this.mesh);
 
-                        // Associer le corps physique aux maillages enfants
                         if (this.body) {
                             this.mesh.traverse((child) => {
                                 if (child.isMesh) {
@@ -590,10 +486,7 @@
                         this.mesh = new THREE.Mesh(new THREE.SphereGeometry(size.x / 2, 32, 32), material);
                         break;
                     case 'cylinder':
-                        this.mesh = new THREE.Mesh(
-                            new THREE.CylinderGeometry(size.x / 2, size.x / 2, size.y, 12),
-                            material
-                        );
+                        this.mesh = new THREE.Mesh(new THREE.CylinderGeometry(size.x / 2, size.x / 2, size.y, 12), material);
                         break;
                     case 'box':
                     default:
@@ -683,7 +576,6 @@
 
             update() {
                 if (this.isGrabbed) return;
-
                 if (this.body && this.mesh) {
                     this.mesh.position.copy(this.body.position);
                     this.mesh.quaternion.copy(this.body.quaternion);
@@ -697,9 +589,9 @@
         class Tray extends GameObject {
             constructor(options) {
                 super(options);
-                this.type = 'tray'; // Définir le type plateau
-                this.healthyCount = 0; // Compteur de bonne nourriture
-                this.unhealthyCount = 0; // Compteur de mauvaise nourriture
+                this.type = 'tray';
+                this.healthyCount = 0;
+                this.unhealthyCount = 0;
 
                 this.healthyFoodModels = [
                     'models/foods/apple.glb',
@@ -709,8 +601,7 @@
                     'models/foods/tomato.glb',
                     'models/foods/water.glb',
                     'models/foods/egg.glb',
-                    'models/foods/chicken.glb',
-                    // Ajoutez les chemins vers vos modèles de nourriture saine ici
+                    'models/foods/chicken.glb'
                 ];
 
                 this.unhealthyFoodModels = [
@@ -722,8 +613,7 @@
                     'models/foods/icecream.glb',
                     'models/foods/chocolate.glb',
                     'models/foods/cupcake.glb',
-                    'models/foods/soda.glb',
-                    // Ajoutez les chemins vers vos modèles de nourriture non saine ici
+                    'models/foods/soda.glb'
                 ];
 
                 this.initFood();
@@ -743,15 +633,8 @@
                 const count = Math.floor(Math.random() * 6) + 1;
                 const shuffled = positions.sort(() => 0.5 - Math.random()).slice(0, count);
 
-                // Déterminer le type du plateau en fonction de la difficulté
                 const randomValue = Math.random();
-                let isHealthyTray;
-
-                if (randomValue < 1 - this.game.difficulty) {
-                    isHealthyTray = true; // Plateau sain
-                } else {
-                    isHealthyTray = false; // Plateau malsain
-                }
+                let isHealthyTray = randomValue < 1 - this.game.difficulty;
 
                 if (isHealthyTray) {
                     this.healthyCount += count;
@@ -759,15 +642,10 @@
                     this.healthyCount -= count;
                 }
 
-                // Sélectionner le tableau de modèles en fonction du type de plateau
                 const selectedFoodModels = isHealthyTray ? this.healthyFoodModels : this.unhealthyFoodModels;
 
-                // Mettre à jour les compteurs en fonction du type de plateau
                 shuffled.forEach(position => {
-                    // Choisir un modèle aléatoire dans le tableau sélectionné
                     const modelPath = selectedFoodModels[Math.floor(Math.random() * selectedFoodModels.length)];
-
-                    // Charger le modèle
                     loader.load(modelPath, gltf => {
                         const food = gltf.scene;
                         food.position.set(position.x, position.y, position.z);
@@ -776,7 +654,6 @@
                 });
             }
         }
-
 
         class TrayReceptor extends GameObject {
             constructor(options) {
@@ -787,21 +664,14 @@
                 this.game.dynamicObjects.forEach(obj => {
                     const body = obj.body;
                     if (this.isInContact(body)) {
-                        // Mettre à jour le healthyCount
                         if (obj.type === 'tray') {
-                            // Ajouter la variable de nourriture saine du plateau
                             this.game.player.healthyCount += obj.healthyCount;
-
-                            // Mettre à jour le slider
                             window.updateHealthySlider(this.game.player.healthyCount);
-                            // Vérifier les conditions de fin de jeu
                             if (this.game.player.healthyCount <= 0) {
-                                this.game.gameOverFunction(false); // Défaite
+                                this.game.gameOverFunction(false);
                             } else if (this.game.player.healthyCount >= 100) {
-                                this.game.gameOverFunction(true); // Victoire
+                                this.game.gameOverFunction(true);
                             }
-
-                            // Détruire le tray
                             this.scene.remove(obj.mesh);
                             this.world.removeBody(obj.body);
                         }
@@ -811,29 +681,21 @@
             }
 
             isInContact(body) {
-                return this.world.contacts.some(contact => {
-                    return (
-                        (contact.bi === this.body && contact.bj === body) ||
-                        (contact.bj === this.body && contact.bi === body)
-                    );
-                });
+                return this.world.contacts.some(contact => (
+                    (contact.bi === this.body && contact.bj === body) ||
+                    (contact.bj === this.body && contact.bi === body)
+                ));
             }
         }
 
         class Bin extends GameObject {
             constructor(options) {
                 super(options);
-
-                // Accès à l'objet couvercle
                 this.lid = this.game.BinLid;
-
-                // Variables pour l'animation d'ouverture/fermeture
                 this.isAnimating = false;
-                this.targetRotation = 0;  // La rotation cible du couvercle
-                this.openRotation = -Math.PI / 2;  // Rotation de 90° pour ouvrir
-                this.closeRotation = 0;  // Rotation fermée
-
-                // Timer pour fermer le couvercle après ouverture
+                this.targetRotation = 0;
+                this.openRotation = -Math.PI / 2;
+                this.closeRotation = 0;
                 this.closeLidTimer = null;
             }
 
@@ -841,21 +703,15 @@
                 this.game.dynamicObjects.forEach(obj => {
                     const body = obj.body;
                     if (this.isInContact(body) && obj.type === 'tray') {
-                        // Supprimer l'objet de la scène et de la physique
                         this.scene.remove(obj.mesh);
                         this.world.removeBody(obj.body);
-
-                        // Jouer le son de la poubelle
                         const audio = new Audio('sounds/trash.wav');
                         audio.volume = 0.3;
                         audio.play();
-
-                        // Déclencher l'animation d'ouverture
                         this.toggleLid();
                     }
                 });
 
-                // Si l'animation est active, mettre à jour la rotation du couvercle
                 if (this.isAnimating) {
                     this.animateLid();
                 }
@@ -864,24 +720,18 @@
             }
 
             toggleLid() {
-                // Basculer entre l'ouverture et la fermeture
-                if (this.isAnimating) return; // Empêcher de basculer pendant une animation
-
+                if (this.isAnimating) return;
                 this.targetRotation = (this.lid.transform.rotation.x === this.closeRotation) ? this.openRotation : this.closeRotation;
-                this.isAnimating = true; // Activer l'animation
+                this.isAnimating = true;
 
-                // Si on ouvre le couvercle, lancer un timer pour le refermer après 2 secondes
                 if (this.targetRotation === this.openRotation) {
-                    // Effacer tout timer existant pour éviter les fermetures multiples
                     if (this.closeLidTimer) {
                         clearTimeout(this.closeLidTimer);
                     }
-
                     this.closeLidTimer = setTimeout(() => {
-                        this.toggleLid(); // Refermer le couvercle
-                    }, 500); // 2000 ms = 2 secondes
+                        this.toggleLid();
+                    }, 500);
                 } else {
-                    // Si on ferme le couvercle, effacer le timer de fermeture si nécessaire
                     if (this.closeLidTimer) {
                         clearTimeout(this.closeLidTimer);
                         this.closeLidTimer = null;
@@ -890,19 +740,14 @@
             }
 
             animateLid() {
-                // Interpoler la rotation actuelle vers la rotation cible
                 this.lid.transform.rotation.x += (this.targetRotation - this.lid.transform.rotation.x) * 0.1;
-
-                // Appliquer les transformations au maillage visuel
                 this.lid.applyTransformations();
 
-                // Si proche de la cible, arrêter l'animation
                 if (Math.abs(this.targetRotation - this.lid.transform.rotation.x) < 0.01) {
-                    this.lid.transform.rotation.x = this.targetRotation;  // Fixer à la cible
-                    this.lid.applyTransformations(); // Assurer que la rotation finale est appliquée
-                    this.isAnimating = false;  // Désactiver l'animation
+                    this.lid.transform.rotation.x = this.targetRotation;
+                    this.lid.applyTransformations();
+                    this.isAnimating = false;
 
-                    // Si on vient de fermer le couvercle, effacer le timer
                     if (this.targetRotation === this.closeRotation && this.closeLidTimer) {
                         clearTimeout(this.closeLidTimer);
                         this.closeLidTimer = null;
@@ -911,26 +756,19 @@
             }
 
             isInContact(body) {
-                return this.world.contacts.some(contact => {
-                    return (
-                        (contact.bi === this.body && contact.bj === body) ||
-                        (contact.bj === this.body && contact.bi === body)
-                    );
-                });
+                return this.world.contacts.some(contact => (
+                    (contact.bi === this.body && contact.bj === body) ||
+                    (contact.bj === this.body && contact.bi === body)
+                ));
             }
         }
 
         class ConveyorBelt extends GameObject {
             constructor(options) {
                 super(options);
-
                 this.speed = options.speed || 0.5;
-
-                // Définir la rotation initiale
                 const rotation = options.transform.rotation || new THREE.Vector3(0, 0, 0);
                 const euler = new THREE.Euler(rotation.x, rotation.y, rotation.z, 'XYZ');
-
-                // Calculer la direction basée sur la rotation initiale
                 this.direction = new THREE.Vector3(1, 0, 0).applyEuler(euler).normalize();
             }
 
@@ -942,7 +780,6 @@
                 this.game.dynamicObjects.forEach(obj => {
                     const body = obj.body;
                     if (this.isInContact(body)) {
-                        // Appliquer la vélocité en fonction de la direction fixe
                         body.velocity.set(
                             this.direction.x * this.speed,
                             body.velocity.y,
@@ -954,12 +791,10 @@
             }
 
             isInContact(body) {
-                return this.world.contacts.some(contact => {
-                    return (
-                        (contact.bi === this.body && contact.bj === body) ||
-                        (contact.bj === this.body && contact.bi === body)
-                    );
-                });
+                return this.world.contacts.some(contact => (
+                    (contact.bi === this.body && contact.bj === body) ||
+                    (contact.bj === this.body && contact.bi === body)
+                ));
             }
         }
 
@@ -974,7 +809,7 @@
             }
 
             start() {
-                this.stop(); // Ensure no multiple timers
+                this.stop();
                 if (!document.hidden) {
                     this.timerId = setInterval(this.callback, this.interval);
                 }
@@ -1001,7 +836,6 @@
             }
         }
 
-        // Classe représentant le joueur
         class Player {
             constructor(options) {
                 this.scene = options.scene;
@@ -1016,33 +850,26 @@
                 this.cameraGroup.add(this.camera);
                 this.scene.add(this.cameraGroup);
 
-                // Initialiser le joueur
                 this.healthyCount = 50;
 
-                // Corps physique du joueur
                 this.playerBody = new CANNON.Body({
                     mass: 1,
                     shape: new CANNON.Sphere(0.5),
                     position: new CANNON.Vec3(0, 1.6, 0),
                     material: new CANNON.Material({ friction: 0.3 }),
                     collisionFilterGroup: COLLISION_GROUP_PLAYER,
-                    collisionFilterMask: COLLISION_GROUP_OBJECT // Collide uniquement avec les objets
+                    collisionFilterMask: COLLISION_GROUP_OBJECT
                 });
                 this.world.addBody(this.playerBody);
 
-                // Variables de contrôle
                 this.yaw = 0;
                 this.pitch = 0;
                 this.grabbedObject = null;
-                this.grabbedMesh = null; // Référence au maillage de l'objet grabé
+                this.grabbedMesh = null;
 
-                // Initialisation des contrôles de la souris
                 this.initMouseControls();
-
-                // Ajout des écouteurs de clic de souris pour le grab/ungrab
                 this.initMouseClick();
 
-                // Initialisation du son de déplacement
                 this.movementSound = new Audio('sounds/footsteps.mp3');
                 this.movementSound.loop = true;
                 this.isMovementSoundPlaying = false;
@@ -1061,22 +888,17 @@
 
             initMouseClick() {
                 document.addEventListener('mousedown', (event) => {
-                    if (event.button === 0) { // Clic gauche
+                    if (event.button === 0 || event.button === 2) {
                         this.tryGrabObject();
-                    } else if (event.button === 2) { // Clic droit
-                        // Implémenter l'action spécifique pour le clic droit si nécessaire
-                        // Par exemple, lancer un objet ou une autre action
-                        this.tryGrabObject(); // Exemple : utiliser le clic droit pour attraper
                     }
                 });
 
                 document.addEventListener('mouseup', (event) => {
-                    if (event.button === 0 || event.button === 2) { // Clic gauche ou droit
+                    if (event.button === 0 || event.button === 2) {
                         this.ungrabObject();
                     }
                 });
 
-                // Empêcher le menu contextuel lors du clic droit
                 document.addEventListener('contextmenu', (event) => {
                     event.preventDefault();
                 });
@@ -1094,7 +916,6 @@
                     (this.input.isKeyPressed('z') ? -1 : 0) + (this.input.isKeyPressed('s') ? 1 : 0)
                 ).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.yaw);
 
-                // Appliquer la vélocité directement
                 this.playerBody.velocity.x = direction.x * 2;
                 this.playerBody.velocity.z = direction.z * 2;
 
@@ -1113,15 +934,13 @@
             }
 
             tryGrabObject() {
-                if (this.grabbedObject) return; // Déjà un objet attrapé
+                if (this.grabbedObject) return;
 
                 const raycaster = new THREE.Raycaster();
-                const mouse = new THREE.Vector2(0, 0); // Centre de l'écran
-
+                const mouse = new THREE.Vector2(0, 0);
                 raycaster.setFromCamera(mouse, this.camera);
-                raycaster.far = 2.5; // Limiter la distance de grab à 2.5 unités
+                raycaster.far = 2.5;
 
-                // Collecte de tous les maillages qui pourraient être attrapés
                 const objectsToIntersect = [];
                 this.scene.traverse((child) => {
                     if (child.isMesh && child.userData && child.userData.body && child.userData.body.mass > 0) {
@@ -1132,93 +951,66 @@
                 const intersects = raycaster.intersectObjects(objectsToIntersect, true);
                 for (let intersect of intersects) {
                     const object = intersect.object;
-
                     if (object.userData && object.userData.body && object.userData.body.mass > 0) {
                         this.grabbedObject = object.userData.body;
-                        this.grabbedMesh = object; // Stocker la référence au maillage
+                        this.grabbedMesh = object;
 
-                        // Désactiver la physique de l'objet
                         this.disablePhysics(this.grabbedObject);
 
-                        // Marquer l'objet comme attrapé
                         if (this.grabbedMesh.userData.gameObject) {
                             this.grabbedMesh.userData.gameObject.grab();
                         }
 
-                        // Attacher le maillage à la caméra
                         this.attachMeshToCamera(this.grabbedMesh);
-
                         break;
                     }
                 }
             }
 
             ungrabObject() {
-                if (!this.grabbedObject) return; // Aucun objet à libérer
+                if (!this.grabbedObject) return;
 
-                // Détacher le maillage de la caméra
                 this.detachMeshFromCamera(this.grabbedMesh);
-
-                // Réactiver la physique de l'objet
                 this.enablePhysics(this.grabbedObject);
 
-                // Marquer l'objet comme libéré
                 if (this.grabbedMesh.userData.gameObject) {
                     this.grabbedMesh.userData.gameObject.ungrab();
                 }
 
-                // Réinitialiser les références
                 this.grabbedObject = null;
                 this.grabbedMesh = null;
             }
 
             disablePhysics(body) {
-                // Enlever le corps du monde physique
                 this.world.removeBody(body);
             }
 
             enablePhysics(body) {
-                // Réajouter le corps au monde physique
                 this.world.addBody(body);
-                body.velocity.set(0, 0, 0); // Réinitialiser la vélocité
+                body.velocity.set(0, 0, 0);
                 body.angularVelocity.set(0, 0, 0);
             }
 
             attachMeshToCamera(mesh) {
-                // Positionner l'objet à une distance fixe devant la caméra
-                const grabDistance = 1.5; // Distance devant la caméra
+                const grabDistance = 1.5;
                 mesh.position.set(0, 0, -grabDistance);
-
-                // Définir la rotation pour qu'elle soit alignée avec la caméra
                 mesh.quaternion.set(0, 0, 0, 1);
-
-                // Ajouter le maillage à la caméra pour qu'il suive automatiquement les mouvements de la caméra
                 this.camera.add(mesh);
             }
 
             detachMeshFromCamera(mesh) {
-                // Mettre à jour la position mondiale avant de détacher
                 mesh.updateMatrixWorld(true);
-
-                // Obtenir la position mondiale du maillage
                 const position = new THREE.Vector3();
                 mesh.getWorldPosition(position);
-
-                // Retirer le maillage de la caméra et l'ajouter à la scène
                 this.camera.remove(mesh);
                 this.scene.add(mesh);
-
-                // Mettre à jour la position du corps physique
                 this.grabbedObject.position.set(position.x, position.y, position.z);
-
-                // Réorienter le corps physique pour correspondre à la rotation du maillage
                 const rotation = new THREE.Quaternion();
                 mesh.getWorldQuaternion(rotation);
                 this.grabbedObject.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w);
             }
         }
 
-        // Classe principale du jeu
         class Game {
             constructor() {
                 this.eventEmitter = new EventEmitter();
@@ -1245,19 +1037,12 @@
                     eventEmitter: this.eventEmitter
                 });
 
-                // Gérer le redimensionnement de la fenêtre
                 window.addEventListener('resize', this.onWindowResize.bind(this));
-
                 this.animate = this.animate.bind(this);
 
-                // Paramètres pour l'incrément de la vitesse des tapis roulants
-                this.conveyorSpeed = 2; // Vitesse initiale (units/s)
-
-                // Initialiser le générateur de trays avec une intervalle initiale
-                this.trayGenerationInterval = 1800; // Intervalle initial en ms
-
-                // Initialiser la difficulté
-                this.difficulty = 0.6; // Niveau de difficulté initial (0 = uniquement nourriture saine)
+                this.conveyorSpeed = 2;
+                this.trayGenerationInterval = 1800;
+                this.difficulty = 0.6;
 
                 this.trayGenerator = new IntervalExecutor(() => {
                     new Tray({
@@ -1293,11 +1078,11 @@
                 const startGame = () => {
                     this.sceneManager.renderer.domElement.requestPointerLock();
                     instructions.style.display = 'none';
-                    this.gameStartTime = Date.now(); // Enregistrer le temps de démarrage
+                    this.gameStartTime = Date.now();
                 };
 
                 startButton.addEventListener('click', (event) => {
-                    event.stopPropagation(); // Empêcher la propagation du clic au conteneur
+                    event.stopPropagation();
                     startGame();
                 });
 
@@ -1305,14 +1090,12 @@
                     startGame();
                 });
 
-                // Écouter les changements de Pointer Lock
                 document.addEventListener('pointerlockchange', () => {
                     if (document.pointerLockElement !== this.sceneManager.renderer.domElement) {
                         instructions.style.display = 'flex';
                     }
                 });
 
-                // Optionnel : Écouter les changements de visibilité de la page
                 document.addEventListener('visibilitychange', () => {
                     if (document.visibilityState === 'visible' && document.pointerLockElement !== this.sceneManager.renderer.domElement) {
                         instructions.style.display = 'flex';
@@ -1320,48 +1103,39 @@
                 });
             }
 
-
             gameOverFunction(hasWon) {
-                if (this.gameOver) return; // Empêcher plusieurs déclenchements
-
+                if (this.gameOver) return;
                 this.gameOver = true;
                 this.gameEndTime = Date.now();
-                const elapsedTime = Math.floor((this.gameEndTime - this.gameStartTime) / 1000); // Temps en secondes
+                const elapsedTime = Math.floor((this.gameEndTime - this.gameStartTime) / 1000);
 
                 const gameOverScreen = document.getElementById('gameOverScreen');
                 const gameOverEmoji = document.getElementById('gameOverEmoji');
                 const gameOverMessage = document.getElementById('gameOverMessage');
                 const gameOverTimer = document.getElementById('gameOverTimer');
 
-                // Définir l'emoji et le message en fonction de la victoire ou de la défaite
                 if (hasWon) {
-                    gameOverEmoji.textContent = '🏆'; // Emoji de victoire
+                    gameOverEmoji.textContent = '🏆';
                     gameOverMessage.textContent = 'Vous avez gagné !';
                 } else {
-                    gameOverEmoji.textContent = '💀'; // Emoji de défaite
+                    gameOverEmoji.textContent = '💀';
                     gameOverMessage.textContent = 'Vous avez perdu !';
                 }
 
                 gameOverTimer.textContent = `Temps écoulé : ${elapsedTime} secondes`;
-
-                // Afficher l'écran de fin de jeu
                 gameOverScreen.style.display = 'flex';
 
-                // Animer les éléments avec GSAP
                 gsap.to('#gameOverEmoji', { duration: 1, opacity: 1, ease: "bounce.out" });
                 gsap.to('#gameOverMessage', { duration: 1, opacity: 1, delay: 0.5 });
                 gsap.to('#gameOverTimer', { duration: 1, opacity: 1, delay: 1 });
             }
 
             initWorld() {
-
-                // Ajouter les murs, le sol et le plafond pour créer une salle fermée
                 const wallThickness = 0.5;
                 const floorThickness = wallThickness;
                 const roomSize = { x: 12, y: 5, z: 15 };
                 const roomCenter = { x: -0.5, y: 2, z: -2 };
 
-                // Création du sol
                 new GameObject({
                     scene: this.sceneManager.scene,
                     world: this.physicsManager.world,
@@ -1391,206 +1165,99 @@
                     }
                 });
 
-                // Mur arrière
-                new GameObject({
-                    scene: this.sceneManager.scene,
-                    world: this.physicsManager.world,
-                    game: this,
-                    transform: {
-                        position: {
-                            x: roomCenter.x,
-                            y: roomCenter.y,
-                            z: roomCenter.z - roomSize.z / 2 - wallThickness / 2
+                const walls = [
+                    {
+                        position: { x: roomCenter.x, y: roomCenter.y, z: roomCenter.z - roomSize.z / 2 - wallThickness / 2 },
+                        size: { x: roomSize.x, y: roomSize.y, z: wallThickness },
+                        color: 0x9e9e9e
+                    },
+                    {
+                        position: { x: roomCenter.x, y: roomCenter.y, z: roomCenter.z + roomSize.z / 2 + wallThickness / 2 },
+                        size: { x: roomSize.x, y: roomSize.y, z: wallThickness },
+                        color: 0x5e5e5e
+                    },
+                    {
+                        position: { x: roomCenter.x - roomSize.x / 2 - wallThickness / 2, y: roomCenter.y, z: roomCenter.z },
+                        size: { x: wallThickness, y: roomSize.y, z: roomSize.z },
+                        color: 0x5e5e5e
+                    },
+                    {
+                        position: { x: roomCenter.x + roomSize.x / 2 + wallThickness / 2, y: roomCenter.y, z: roomCenter.z },
+                        size: { x: wallThickness, y: roomSize.y, z: roomSize.z },
+                        color: 0x5e5e5e
+                    },
+                    {
+                        position: { x: roomCenter.x, y: roomCenter.y + roomSize.y / 2 - floorThickness / 2, z: roomCenter.z },
+                        size: { x: roomSize.x, y: floorThickness, z: roomSize.z },
+                        color: 0xcccccc
+                    }
+                ];
+
+                walls.forEach(wall => {
+                    new GameObject({
+                        scene: this.sceneManager.scene,
+                        world: this.physicsManager.world,
+                        game: this,
+                        transform: {
+                            position: wall.position,
+                            size: wall.size
                         },
-                        size: { x: roomSize.x, y: roomSize.y, z: wallThickness }
-                    },
-                    physics: {
-                        mass: 0
-                    },
-                    appearance: {
-                        color: 0x9e9e9e,
-                        shapeType: 'box'
-                    },
-                    collider: {
-                        type: 'box',
-                        size: { x: roomSize.x, y: roomSize.y, z: wallThickness }
-                    }
-                });
-
-                // Mur avant
-                new GameObject({
-                    scene: this.sceneManager.scene,
-                    world: this.physicsManager.world,
-                    game: this,
-                    transform: {
-                        position: {
-                            x: roomCenter.x,
-                            y: roomCenter.y,
-                            z: roomCenter.z + roomSize.z / 2 + wallThickness / 2
+                        physics: {
+                            mass: 0
                         },
-                        size: { x: roomSize.x, y: roomSize.y, z: wallThickness }
-                    },
-                    physics: {
-                        mass: 0
-                    },
-                    appearance: {
-                        color: 0x5e5e5e,
-                        shapeType: 'box'
-                    },
-                    collider: {
-                        type: 'box',
-                        size: { x: roomSize.x, y: roomSize.y, z: wallThickness }
-                    }
-                });
-
-                // Mur gauche
-                new GameObject({
-                    scene: this.sceneManager.scene,
-                    world: this.physicsManager.world,
-                    game: this,
-                    transform: {
-                        position: {
-                            x: roomCenter.x - roomSize.x / 2 - wallThickness / 2,
-                            y: roomCenter.y,
-                            z: roomCenter.z
+                        appearance: {
+                            color: wall.color,
+                            shapeType: 'box'
                         },
-                        size: { x: wallThickness, y: roomSize.y, z: roomSize.z }
-                    },
-                    physics: {
-                        mass: 0
-                    },
-                    appearance: {
-                        color: 0x5e5e5e,
-                        shapeType: 'box'
-                    },
-                    collider: {
-                        type: 'box',
-                        size: { x: wallThickness, y: roomSize.y, z: roomSize.z }
-                    }
+                        collider: {
+                            type: 'box',
+                            size: wall.size
+                        }
+                    });
                 });
 
-                // Mur droit
-                new GameObject({
-                    scene: this.sceneManager.scene,
-                    world: this.physicsManager.world,
-                    game: this,
-                    transform: {
-                        position: {
-                            x: roomCenter.x + roomSize.x / 2 + wallThickness / 2,
-                            y: roomCenter.y,
-                            z: roomCenter.z
+                const additionalObjects = [
+                    {
+                        transform: {
+                            position: { x: 5, y: 0.2, z: 5.4 },
+                            size: { x: 2, y: 2, z: 0.1 }
                         },
-                        size: { x: wallThickness, y: roomSize.y, z: roomSize.z }
+                        model: { path: 'models/environments/window.glb' }
                     },
-                    physics: {
-                        mass: 0
-                    },
-                    appearance: {
-                        color: 0x5e5e5e,
-                        shapeType: 'box'
-                    },
-                    collider: {
-                        type: 'box',
-                        size: { x: wallThickness, y: roomSize.y, z: roomSize.z }
-                    }
-                });
-
-                // Plafond
-                new GameObject({
-                    scene: this.sceneManager.scene,
-                    world: this.physicsManager.world,
-                    game: this,
-                    transform: {
-                        position: {
-                            x: roomCenter.x,
-                            y: roomCenter.y + roomSize.y / 2 - floorThickness / 2,
-                            z: roomCenter.z
+                    {
+                        transform: {
+                            position: { x: -6.5, y: 0.2, z: -7 },
+                            size: { x: 2, y: 2, z: 0.1 },
+                            rotation: { x: 0, y: Math.PI / 2, z: 0 }
                         },
-                        size: { x: roomSize.x, y: floorThickness, z: roomSize.z }
+                        model: { path: 'models/environments/window.glb' }
                     },
-                    physics: {
-                        mass: 0
-                    },
-                    appearance: {
-                        color: 0xcccccc,
-                        shapeType: 'box'
-                    },
-                    collider: {
-                        type: 'box',
-                        size: { x: roomSize.x, y: floorThickness, z: roomSize.z }
-                    }
-                });
-
-                // Front wall window
-                new GameObject({
-                    scene: this.sceneManager.scene,
-                    world: this.physicsManager.world,
-                    game: this,
-                    transform: {
-                        position: {
-                            x: 5,
-                            y: 0.2,
-                            z: 5.4
+                    {
+                        transform: {
+                            position: { x: roomCenter.x, y: -0.1, z: -9.69 },
+                            size: { x: 1, y: 2, z: 0.1 }
                         },
-                        size: { x: 2, y: 2, z: 0.1 }
+                        model: { path: 'models/environments/door.glb' }
                     },
-                    model: {
-                        path: 'models/environments/window.glb'
-                    }
-                });
-
-                // Right wall window
-                new GameObject({
-                    scene: this.sceneManager.scene,
-                    world: this.physicsManager.world,
-                    game: this,
-                    transform: {
-                        position: {
-                            x: -6.5,
-                            y: 0.2,
-                            z: -7
+                    {
+                        transform: {
+                            position: { x: -0.5, y: 3.4, z: -2 },
+                            size: { x: 1, y: 2, z: 0.1 }
                         },
-                        size: { x: 2, y: 2, z: 0.1 },
-                        rotation: { x: 0, y: Math.PI / 2, z: 0 }
-                    },
-                    model: {
-                        path: 'models/environments/window.glb'
+                        model: { path: 'models/environments/light.glb' }
                     }
+                ];
+
+                additionalObjects.forEach(obj => {
+                    new GameObject({
+                        scene: this.sceneManager.scene,
+                        world: this.physicsManager.world,
+                        game: this,
+                        transform: obj.transform,
+                        model: obj.model
+                    });
                 });
 
-                // Back wall door
-                new GameObject({
-                    scene: this.sceneManager.scene,
-                    world: this.physicsManager.world,
-                    game: this,
-                    transform: {
-                        position: {
-                            x: roomCenter.x,
-                            y: -0.1,
-                            z: -9.69
-                        },
-                        size: { x: 1, y: 2, z: 0.1 }
-                    },
-                    model: {
-                        path: 'models/environments/door.glb'
-                    }
-                });
-
-                // light
-                new GameObject({
-                    scene: this.sceneManager.scene,
-                    world: this.physicsManager.world,
-                    game: this,
-                    transform: {
-                        position: { x: -0.5, y: 3.4, z: -2 },
-                        size: { x: 1, y: 2, z: 0.1 }
-                    },
-                    model: {
-                        path: 'models/environments/light.glb'
-                    }
-                });
-
-                // Création d'un plateau récepteur
                 new TrayReceptor({
                     scene: this.sceneManager.scene,
                     world: this.physicsManager.world,
@@ -1605,16 +1272,16 @@
                         mass: 0
                     },
                     appearance: {
-                        color: 0x000000, // Vert
+                        color: 0x000000,
                         shapeType: 'box',
                         opacity: 1
                     },
                     collider: {
                         type: 'box',
-                        size: { x: 0.1, y: 2, z: 2 },
+                        size: { x: 0.1, y: 2, z: 2 }
                     }
                 });
-                // Couvercle de la poubelle
+
                 this.BinLid = new GameObject({
                     scene: this.sceneManager.scene,
                     world: this.physicsManager.world,
@@ -1628,9 +1295,9 @@
                         color: 0x969696,
                         shapeType: 'box',
                         opacity: 1
-                    },
+                    }
                 });
-                // Création d'une poubelle
+
                 new Bin({
                     scene: this.sceneManager.scene,
                     world: this.physicsManager.world,
@@ -1653,16 +1320,15 @@
                     }
                 });
 
-                // Tapis roulant du côté gauche du U
                 const conveyorBelt1 = new ConveyorBelt({
                     scene: this.sceneManager.scene,
                     world: this.physicsManager.world,
                     game: this,
                     isDynamic: true,
                     transform: {
-                        position: { x: -5, y: 0.5, z: -2.5 }, // Position décalée à gauche
-                        rotation: { x: 0, y: -Math.PI / 2, z: 0 }, // Orientation verticale
-                        size: { x: 10, y: 1.5, z: 2 } // Taille du tapis
+                        position: { x: -5, y: 0.5, z: -2.5 },
+                        rotation: { x: 0, y: -Math.PI / 2, z: 0 },
+                        size: { x: 10, y: 1.5, z: 2 }
                     },
                     appearance: {
                         color: 0x000000,
@@ -1671,13 +1337,13 @@
                     },
                     physics: {
                         mass: 0,
-                        friction: 0,
+                        friction: 0
                     },
                     collider: {
                         type: 'box',
                         size: { x: 10, y: 1.5, z: 2 }
                     },
-                    speed: this.conveyorSpeed,
+                    speed: this.conveyorSpeed
                 });
 
                 const conveyorBelt2 = new ConveyorBelt({
@@ -1686,9 +1352,9 @@
                     game: this,
                     isDynamic: true,
                     transform: {
-                        position: { x: -1, y: 0.499, z: 3 }, // Position centrale
-                        size: { x: 10, y: 1.5, z: 2 },    // Taille du tapis
-                        rotation: { x: 0, y: 0, z: 0 }   // Orientation horizontale
+                        position: { x: -1, y: 0.499, z: 3 },
+                        size: { x: 10, y: 1.5, z: 2 },
+                        rotation: { x: 0, y: 0, z: 0 }
                     },
                     appearance: {
                         color: 0x000000,
@@ -1697,13 +1363,13 @@
                     },
                     physics: {
                         mass: 0,
-                        friction: 0,
+                        friction: 0
                     },
                     collider: {
                         type: 'box',
                         size: { x: 10, y: 1.5, z: 2 }
                     },
-                    speed: this.conveyorSpeed,
+                    speed: this.conveyorSpeed
                 });
 
                 const conveyorBelt3 = new ConveyorBelt({
@@ -1712,9 +1378,9 @@
                     game: this,
                     isDynamic: true,
                     transform: {
-                        position: { x: 4, y: 0.498, z: -3 }, // Position décalée à gauche
-                        size: { x: 14, y: 1.5, z: 2 },        // Taille du tapis
-                        rotation: { x: 0, y: Math.PI / 2, z: 0 } // Orientation verticale
+                        position: { x: 4, y: 0.498, z: -3 },
+                        size: { x: 14, y: 1.5, z: 2 },
+                        rotation: { x: 0, y: Math.PI / 2, z: 0 }
                     },
                     appearance: {
                         color: 0x000000,
@@ -1723,95 +1389,73 @@
                     },
                     physics: {
                         mass: 0,
-                        friction: 0,
+                        friction: 0
                     },
                     collider: {
                         type: 'box',
-                        size: { x: 14, y: 1.5, z: 2 },        // Taille du tapis
+                        size: { x: 14, y: 1.5, z: 2 }
                     },
-                    speed: this.conveyorSpeed,
+                    speed: this.conveyorSpeed
                 });
 
                 this.conveyorBelts.push(conveyorBelt1, conveyorBelt2, conveyorBelt3);
 
-                // Création d'un décor de tapis roulant du côté gauche du U
-                new GameObject({
-                    scene: this.sceneManager.scene,
-                    world: this.physicsManager.world,
-                    game: this,
-                    transform: {
-                        position: { x: 4, y: 0.3, z: -2.5 },
-                        size: { x: 1.4, y: 1.5, z: 2 },
-                        rotation: { x: 0, y: Math.PI / 2, z: 0 }
+                const decorativeConveyors = [
+                    {
+                        transform: {
+                            position: { x: 4, y: 0.3, z: -2.5 },
+                            size: { x: 1.4, y: 1.5, z: 2 },
+                            rotation: { x: 0, y: Math.PI / 2, z: 0 }
+                        },
+                        model: { path: 'models/environments/conveyor.glb' }
                     },
-                    model: {
-                        path: 'models/environments/conveyor.glb'
+                    {
+                        transform: {
+                            position: { x: -5, y: 0.3, z: -2.5 },
+                            size: { x: 1.4, y: 1.5, z: 2 },
+                            rotation: { x: 0, y: Math.PI / 2, z: 0 }
+                        },
+                        model: { path: 'models/environments/conveyor.glb' }
+                    },
+                    {
+                        transform: {
+                            position: { x: -0.5, y: 0.3, z: 3 },
+                            size: { x: 1.4, y: 1.5, z: 2 },
+                            rotation: { x: 0, y: 0, z: 0 }
+                        },
+                        model: { path: 'models/environments/conveyor2.glb' }
+                    },
+                    {
+                        transform: {
+                            position: { x: -5, y: -0.2, z: -6.90 },
+                            size: { x: 1.4, y: 1.5, z: 2 },
+                            rotation: { x: 0, y: Math.PI / 2, z: Math.PI / 2 }
+                        },
+                        model: { path: 'models/environments/conveyor_hole.glb' }
+                    },
+                    {
+                        transform: {
+                            position: { x: 4, y: 1.8, z: -9 },
+                            size: { x: 1.4, y: 1.5, z: 2 },
+                            rotation: { x: 0, y: Math.PI / 2, z: 0 }
+                        },
+                        model: { path: 'models/environments/conveyor_hole.glb' }
                     }
-                });
+                ];
 
-                // Création d'un décor de tapis roulant du coté droit du U
-                new GameObject({
-                    scene: this.sceneManager.scene,
-                    world: this.physicsManager.world,
-                    game: this,
-                    transform: {
-                        position: { x: -5, y: 0.3, z: -2.5 },
-                        size: { x: 1.4, y: 1.5, z: 2 },
-                        rotation: { x: 0, y: Math.PI / 2, z: 0 }
-                    },
-                    model: {
-                        path: 'models/environments/conveyor.glb'
-                    }
-                });
-
-                // Création d'un décor de tapis roulant de la base du U
-                new GameObject({
-                    scene: this.sceneManager.scene,
-                    world: this.physicsManager.world,
-                    game: this,
-                    transform: {
-                        position: { x: -0.5, y: 0.3, z: 3 },
-                        size: { x: 1.4, y: 1.5, z: 2 },
-                        rotation: { x: 0, y: 0, z: 0 }
-                    },
-                    model: {
-                        path: 'models/environments/conveyor2.glb'
-                    }
-                });
-
-                // Decor plateau générateur
-                new GameObject({
-                    scene: this.sceneManager.scene,
-                    world: this.physicsManager.world,
-                    game: this,
-                    transform: {
-                        position: { x: -5, y: -0.2, z: -6.90 },
-                        size: { x: 1.4, y: 1.5, z: 2 },
-                        rotation: { x: 0, y: Math.PI / 2, z: Math.PI / 2 }
-                    },
-                    model: {
-                        path: 'models/environments/conveyor_hole.glb'
-                    }
-                });
-
-                // Décor plateau récepteur
-                new GameObject({
-                    scene: this.sceneManager.scene,
-                    world: this.physicsManager.world,
-                    game: this,
-                    transform: {
-                        position: { x: 4, y: 1.8, z: -9 },
-                        size: { x: 1.4, y: 1.5, z: 2 },
-                        rotation: { x: 0, y: Math.PI / 2, z: 0 }
-                    },
-                    model: {
-                        path: 'models/environments/conveyor_hole.glb'
-                    }
+                decorativeConveyors.forEach(conveyor => {
+                    new GameObject({
+                        scene: this.sceneManager.scene,
+                        world: this.physicsManager.world,
+                        game: this,
+                        transform: conveyor.transform,
+                        model: conveyor.model
+                    });
                 });
             }
 
             initSounds() {
-                var audio = new Audio('sounds/conveyor.mp3');
+                const audio = new Audio('sounds/conveyor.mp3');
                 audio.volume = 0.06;
                 audio.loop = true;
                 audio.play();
@@ -1819,17 +1463,9 @@
 
             animate() {
                 requestAnimationFrame(this.animate);
-
-                // Mettre à jour la physique
                 this.physicsManager.step();
-
-                // Mettre à jour tous les objets dynamiques
                 this.dynamicObjects.forEach(obj => obj.update());
-
-                // Mettre à jour le joueur
                 this.player.update();
-
-                // Rendu de la scène avec la caméra du joueur
                 this.sceneManager.render(this.player.camera);
             }
 
@@ -1844,7 +1480,6 @@
             }
         }
 
-        // Initialisation du jeu
         const game = new Game();
         game.start();
     </script>
