@@ -200,46 +200,6 @@
             font-size: 1.5rem;
             opacity: 0;
         }
-
-        /* Styles pour les joysticks mobiles */
-        /* Conteneur du Joystick de Déplacement */
-        #joystick-container {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            width: 150px;
-            height: 150px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 50%;
-            touch-action: none;
-            z-index: 2000;
-        }
-
-        /* Zone de Rotation de la Caméra */
-        #camera-rotate-area {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            width: 150px;
-            height: 150px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 50%;
-            touch-action: none;
-            z-index: 2000;
-        }
-
-        /* Ajustements pour les petits écrans */
-        @media (max-width: 600px) {
-            #joystick-container,
-            #camera-rotate-area {
-                width: 100px;
-                height: 100px;
-            }
-
-            .slider-container {
-                width: 300px;
-            }
-        }
     </style>
 </head>
 
@@ -273,22 +233,10 @@
             <p id="gameOverTimer" class="game-over-timer"></p>
         </div>
     </div>
-
-    <!-- Joystick de Déplacement -->
-    <div id="joystick-container">
-        <canvas id="joystick-canvas" width="150" height="150"></canvas>
-    </div>
-
-    <!-- Zone de Rotation de la Caméra -->
-    <div id="camera-rotate-area"></div>
-
-    <!-- Bibliothèques externes -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/cannon@0.6.2/build/cannon.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-
-    <!-- Script Principal -->
     <script>
         let previousValue = 0;
 
@@ -358,8 +306,6 @@
                 this.world.gravity.set(0, -9.82, 0);
                 this.fixedTimeStep = 1 / 60;
                 this.maxSubSteps = 3;
-                this.world.broadphase = new CANNON.NaiveBroadphase();
-                this.world.solver.iterations = 10;
             }
 
             step() {
@@ -916,10 +862,8 @@
                 });
                 this.world.addBody(this.playerBody);
 
-                // Initialisation des variables de rotation
                 this.yaw = 0;
                 this.pitch = 0;
-
                 this.grabbedObject = null;
                 this.grabbedMesh = null;
 
@@ -966,10 +910,11 @@
             }
 
             handleMovement() {
-                // Utilisation du vecteur du joystick pour le déplacement
                 const direction = new THREE.Vector3(
-                    joystickVector.x, 0, joystickVector.y
-                ).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.yaw).normalize();
+                    (this.input.isKeyPressed('q') ? -1 : 0) + (this.input.isKeyPressed('d') ? 1 : 0),
+                    0,
+                    (this.input.isKeyPressed('z') ? -1 : 0) + (this.input.isKeyPressed('s') ? 1 : 0)
+                ).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.yaw);
 
                 this.playerBody.velocity.x = direction.x * 2;
                 this.playerBody.velocity.z = direction.z * 2;
@@ -1191,7 +1136,6 @@
                 const roomSize = { x: 12, y: 5, z: 15 };
                 const roomCenter = { x: -0.5, y: 2, z: -2 };
 
-                // Sol
                 new GameObject({
                     scene: this.sceneManager.scene,
                     world: this.physicsManager.world,
@@ -1221,7 +1165,6 @@
                     }
                 });
 
-                // Murs
                 const walls = [
                     {
                         position: { x: roomCenter.x, y: roomCenter.y, z: roomCenter.z - roomSize.z / 2 - wallThickness / 2 },
@@ -1273,7 +1216,6 @@
                     });
                 });
 
-                // Objets supplémentaires
                 const additionalObjects = [
                     {
                         transform: {
@@ -1316,7 +1258,6 @@
                     });
                 });
 
-                // Tray Receptor
                 new TrayReceptor({
                     scene: this.sceneManager.scene,
                     world: this.physicsManager.world,
@@ -1341,7 +1282,6 @@
                     }
                 });
 
-                // Lid du Bin
                 this.BinLid = new GameObject({
                     scene: this.sceneManager.scene,
                     world: this.physicsManager.world,
@@ -1358,7 +1298,6 @@
                     }
                 });
 
-                // Bin
                 new Bin({
                     scene: this.sceneManager.scene,
                     world: this.physicsManager.world,
@@ -1381,7 +1320,6 @@
                     }
                 });
 
-                // Ceintures transporteuses
                 const conveyorBelt1 = new ConveyorBelt({
                     scene: this.sceneManager.scene,
                     world: this.physicsManager.world,
@@ -1462,7 +1400,6 @@
 
                 this.conveyorBelts.push(conveyorBelt1, conveyorBelt2, conveyorBelt3);
 
-                // Ceintures transporteuses décoratives
                 const decorativeConveyors = [
                     {
                         transform: {
@@ -1544,103 +1481,6 @@
         }
 
         const game = new Game();
-
-        // Initialisation des Joysticks et de la Rotation de la Caméra
-        // Variables globales pour le joystick de déplacement
-        const joystickCanvas = document.getElementById('joystick-canvas');
-        const ctx = joystickCanvas.getContext('2d');
-        const joystickRadius = 60;
-        let joystickActive = false;
-        let joystickPosition = { x: 75, y: 75 };
-        let joystickVector = { x: 0, y: 0 };
-
-        // Dessine le joystick
-        function drawJoystick() {
-            ctx.clearRect(0, 0, joystickCanvas.width, joystickCanvas.height);
-            // Cercle extérieur
-            ctx.beginPath();
-            ctx.arc(75, 75, joystickRadius, 0, Math.PI * 2);
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-            // Joystick interne
-            ctx.beginPath();
-            ctx.arc(joystickPosition.x, joystickPosition.y, 30, 0, Math.PI * 2);
-            ctx.fillStyle = '#ffffff';
-            ctx.fill();
-        }
-
-        joystickCanvas.addEventListener('touchstart', function (e) {
-            e.preventDefault();
-            joystickActive = true;
-            const touch = e.touches[0];
-            const rect = joystickCanvas.getBoundingClientRect();
-            joystickPosition.x = touch.clientX - rect.left;
-            joystickPosition.y = touch.clientY - rect.top;
-            drawJoystick();
-        }, { passive: false });
-
-        joystickCanvas.addEventListener('touchmove', function (e) {
-            e.preventDefault();
-            if (!joystickActive) return;
-            const touch = e.touches[0];
-            const rect = joystickCanvas.getBoundingClientRect();
-            let x = touch.clientX - rect.left;
-            let y = touch.clientY - rect.top;
-            const dx = x - 75;
-            const dy = y - 75;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            if (distance > joystickRadius) {
-                x = 75 + (dx / distance) * joystickRadius;
-                y = 75 + (dy / distance) * joystickRadius;
-            }
-            joystickPosition.x = x;
-            joystickPosition.y = y;
-            joystickVector.x = (x - 75) / joystickRadius;
-            joystickVector.y = (y - 75) / joystickRadius;
-            drawJoystick();
-        }, { passive: false });
-
-        joystickCanvas.addEventListener('touchend', function (e) {
-            e.preventDefault();
-            joystickActive = false;
-            joystickPosition = { x: 75, y: 75 };
-            joystickVector = { x: 0, y: 0 };
-            drawJoystick();
-        }, { passive: false });
-
-        drawJoystick();
-
-        // Zone de Rotation de la Caméra
-        const cameraRotateArea = document.getElementById('camera-rotate-area');
-        let lastTouch = null;
-
-        cameraRotateArea.addEventListener('touchstart', function (e) {
-            if (e.touches.length === 1) {
-                lastTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-            }
-        }, { passive: false });
-
-        cameraRotateArea.addEventListener('touchmove', function (e) {
-            if (e.touches.length === 1 && lastTouch) {
-                e.preventDefault();
-                const touch = e.touches[0];
-                const deltaX = touch.clientX - lastTouch.x;
-                const deltaY = touch.clientY - lastTouch.y;
-                lastTouch = { x: touch.clientX, y: touch.clientY };
-                // Applique la rotation à la caméra
-                game.player.yaw -= deltaX * 0.005;
-                game.player.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, game.player.pitch - deltaY * 0.005));
-                game.player.cameraGroup.rotation.y = game.player.yaw;
-                game.player.camera.rotation.x = game.player.pitch;
-            }
-        }, { passive: false });
-
-        cameraRotateArea.addEventListener('touchend', function (e) {
-            lastTouch = null;
-        }, { passive: false });
-
-        // Assurez-vous d'initialiser les joysticks après la création du jeu
         game.start();
     </script>
 </body>
